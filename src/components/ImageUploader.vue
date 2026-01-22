@@ -93,7 +93,6 @@ const isDragOver = ref(false)
 const uploading = ref(false)
 const uploadProgress = ref({})
 
-// GitHub 配置
 const KEY = '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'
 const USER = 'bucketio'
 const CDN_BASE = 'https://fastly.jsdelivr.net/gh/bucketio'
