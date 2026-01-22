@@ -2,6 +2,21 @@
   <div class="wechat-preview">
     <div class="preview-header">
       <h3 class="preview-title">微信公众号预览</h3>
+      <button 
+        v-if="images.length > 0"
+        @click="copyToClipboard"
+        class="copy-btn"
+        :disabled="isCopying"
+      >
+        <svg v-if="!copySuccess" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke-width="2"/>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-width="2"/>
+        </svg>
+        <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <polyline points="20 6 9 17 4 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>{{ copySuccess ? '已复制' : '复制代码' }}</span>
+      </button>
     </div>
     
     <div class="phone-mockup">
@@ -85,6 +100,9 @@ const props = defineProps({
   }
 })
 
+const isCopying = ref(false)
+const copySuccess = ref(false)
+
 const currentDate = computed(() => {
   const now = new Date()
   const year = now.getFullYear()
@@ -114,6 +132,67 @@ const getArticleBodyStyle = () => {
     gap: gap
   }
 }
+
+// 生成微信公众号 HTML 代码（只包含图片）
+const generateHTML = () => {
+  const columns = props.gridColumns || 3
+  const gap = columns >= 5 ? '4px' : columns >= 4 ? '5px' : '8px'
+  
+  // 生成图片 HTML（网格布局）
+  const imagesHTML = props.images.map((image, index) => {
+    return `    <div style="aspect-ratio: 1; overflow: hidden; border-radius: 4px; background: #f9fafb;">
+      <img src="${image.url}" alt="图片 ${index + 1}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
+    </div>`
+  }).join('\n')
+  
+  // 只生成图片网格布局的 HTML
+  const html = `<div style="display: grid; grid-template-columns: repeat(${columns}, 1fr); gap: ${gap}; padding: 12px;">
+${imagesHTML}
+</div>`
+  
+  return html
+}
+
+// 复制到剪贴板
+const copyToClipboard = async () => {
+  if (props.images.length === 0) return
+  
+  try {
+    isCopying.value = true
+    copySuccess.value = false
+    
+    const html = generateHTML()
+    
+    // 使用 Clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(html)
+    } else {
+      // 降级方案：使用传统方法
+      const textArea = document.createElement('textarea')
+      textArea.value = html
+      textArea.style.position = 'fixed'
+      textArea.style.left = '-999999px'
+      textArea.style.top = '-999999px'
+      document.body.appendChild(textArea)
+      textArea.focus()
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+    }
+    
+    copySuccess.value = true
+    
+    // 3秒后重置状态
+    setTimeout(() => {
+      copySuccess.value = false
+    }, 3000)
+  } catch (error) {
+    console.error('复制失败:', error)
+    alert('复制失败，请手动复制')
+  } finally {
+    isCopying.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -138,23 +217,70 @@ const getArticleBodyStyle = () => {
 }
 
 .preview-header {
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
 }
 
 .preview-title {
   font-family: 'Inter', sans-serif;
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #1a202c;
   margin: 0;
   letter-spacing: -0.01em;
+  flex: 1;
+}
+
+.copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  white-space: nowrap;
+}
+
+.copy-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.copy-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.copy-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.copy-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.copy-btn span {
+  font-weight: 500;
 }
 
 .phone-mockup {
   background: #ffffff;
-  border-radius: 28px;
+  border-radius: 24px;
   box-shadow: 
-    0 25px 70px rgba(0, 0, 0, 0.18),
+    0 20px 60px rgba(0, 0, 0, 0.15),
     0 0 0 1px rgba(0, 0, 0, 0.05);
   overflow: hidden;
   width: 375px;
@@ -164,9 +290,9 @@ const getArticleBodyStyle = () => {
 }
 
 .phone-mockup:hover {
-  transform: translateY(-4px);
+  transform: translateY(-2px);
   box-shadow: 
-    0 30px 80px rgba(0, 0, 0, 0.22),
+    0 25px 70px rgba(0, 0, 0, 0.2),
     0 0 0 1px rgba(0, 0, 0, 0.08);
 }
 
@@ -378,8 +504,19 @@ const getArticleBodyStyle = () => {
 }
 
 @media (max-width: 768px) {
+  .preview-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  
   .preview-title {
     font-size: 1.25rem;
+  }
+  
+  .copy-btn {
+    width: 100%;
+    justify-content: center;
   }
   
   .phone-mockup {

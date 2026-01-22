@@ -198,8 +198,8 @@ onUnmounted(() => {
 .image-layout {
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(20px);
-  border-radius: 28px;
-  padding: 3rem;
+  border-radius: 24px;
+  padding: 2.5rem;
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.12),
     0 0 0 1px rgba(255, 255, 255, 0.5) inset;
@@ -213,15 +213,14 @@ onUnmounted(() => {
 }
 
 .layout-controls {
-  margin-bottom: 2.5rem;
-  padding-bottom: 2rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.75rem;
   border-bottom: 2px solid rgba(102, 126, 234, 0.12);
 }
 
 .grid-columns-control {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(102, 126, 234, 0.08);
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .columns-label {
@@ -266,10 +265,10 @@ onUnmounted(() => {
 
 .controls-title {
   font-family: 'Inter', sans-serif;
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #1a202c;
-  margin: 0 0 1.75rem;
+  margin: 0 0 1.5rem;
   letter-spacing: -0.01em;
 }
 
@@ -341,7 +340,7 @@ onUnmounted(() => {
 /* 网格布局 */
 .layout-grid {
   grid-auto-rows: 200px;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .layout-grid .layout-item {

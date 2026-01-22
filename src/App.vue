@@ -93,7 +93,7 @@ const handleGridColumnsChange = (columns) => {
 }
 
 .header {
-  padding: 4rem 2rem 3rem;
+  padding: 3.5rem 2rem 2.5rem;
   text-align: center;
   position: relative;
   z-index: 1;
@@ -139,15 +139,15 @@ const handleGridColumnsChange = (columns) => {
 .main-content {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 0 2rem 5rem;
+  padding: 0 2rem 4rem;
   position: relative;
   z-index: 1;
 }
 
 .content-layout {
   display: grid;
-  grid-template-columns: 1fr 420px;
-  gap: 2.5rem;
+  grid-template-columns: 1fr 400px;
+  gap: 2rem;
   align-items: start;
   animation: fadeInUp 0.8s ease-out 0.2s both;
 }
@@ -173,7 +173,7 @@ const handleGridColumnsChange = (columns) => {
 
 .footer {
   text-align: center;
-  padding: 3rem 2rem 2rem;
+  padding: 2.5rem 2rem 2rem;
   color: rgba(255, 255, 255, 0.85);
   font-family: 'Inter', sans-serif;
   font-size: 0.9375rem;
@@ -185,7 +185,7 @@ const handleGridColumnsChange = (columns) => {
 @media (max-width: 1280px) {
   .content-layout {
     grid-template-columns: 1fr 380px;
-    gap: 2rem;
+    gap: 1.75rem;
   }
 }
 
@@ -196,7 +196,7 @@ const handleGridColumnsChange = (columns) => {
   
   .content-layout {
     grid-template-columns: 1fr;
-    gap: 2rem;
+    gap: 1.75rem;
   }
   
   .preview-section {
@@ -204,7 +204,7 @@ const handleGridColumnsChange = (columns) => {
   }
   
   .main-content {
-    padding: 0 1.5rem 4rem;
+    padding: 0 1.5rem 3.5rem;
   }
 }
 
