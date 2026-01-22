@@ -93,8 +93,8 @@ const isDragOver = ref(false)
 const uploading = ref(false)
 const uploadProgress = ref({})
 
-const KEY = Base64.decode('Z2hwX0w0aXNIZjAxbmxsT09IQkdvREc2anNjQ0EwOVdWNDRRRHZsZw==')
-const USER = Base64.decode('bucketio')
+const KEY = '{GITHUB_TOKEN}'
+const USER = 'bucketio'
 const CDN_BASE = 'https://fastly.jsdelivr.net/gh/bucketio'
 
 // 生成 UUID
