@@ -55,6 +55,7 @@
             :key="index"
             class="article-image"
             :class="getImageClass(index)"
+            @click="openPreview(image, index)"
           >
             <img 
               :src="image.url" 
@@ -71,11 +72,51 @@
         </div>
       </div>
     </div>
+
+    <!-- 图片预览模态框 -->
+    <div 
+      v-if="previewImage"
+      class="image-preview-modal"
+      @click="closePreview"
+    >
+      <button class="preview-close" @click.stop="closePreview" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <line x1="18" y1="6" x2="6" y2="18" stroke-width="2"/>
+          <line x1="6" y1="6" x2="18" y2="18" stroke-width="2"/>
+        </svg>
+      </button>
+      <div class="preview-content" @click.stop>
+        <img :src="previewImage.url" :alt="`预览图 ${previewIndex + 1}`" />
+        <div class="preview-nav">
+          <button 
+            @click="prevImage"
+            :disabled="previewIndex === 0"
+            class="nav-btn prev"
+            aria-label="上一张"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="15 18 9 12 15 6" stroke-width="2"/>
+            </svg>
+          </button>
+          <span class="nav-info">{{ previewIndex + 1 }} / {{ images.length }}</span>
+          <button 
+            @click="nextImage"
+            :disabled="previewIndex === images.length - 1"
+            class="nav-btn next"
+            aria-label="下一张"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="9 18 15 12 9 6" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 
 const props = defineProps({
   images: {
@@ -102,6 +143,8 @@ const props = defineProps({
 
 const isCopying = ref(false)
 const copySuccess = ref(false)
+const previewImage = ref(null)
+const previewIndex = ref(0)
 
 const currentDate = computed(() => {
   const now = new Date()
@@ -136,24 +179,132 @@ const getArticleBodyStyle = () => {
 // 生成微信公众号 HTML 代码（只包含图片）
 const generateHTML = () => {
   const columns = props.gridColumns || 3
-  const gap = columns >= 5 ? '4px' : columns >= 4 ? '5px' : '8px'
   
-  // 生成图片 HTML（网格布局）
-  const imagesHTML = props.images.map((image, index) => {
-    return `    <div style="aspect-ratio: 1; overflow: hidden; border-radius: 4px; background: #f9fafb;">
-      <img src="${image.url}" alt="图片 ${index + 1}" style="width: 100%; height: 100%; object-fit: cover; display: block;" />
-    </div>`
+  // 计算间距，与预览区域保持一致
+  // 预览区域：columns >= 5 ? '0.25rem' : columns >= 4 ? '0.3rem' : '0.5rem'
+  // 转换为像素：假设 1rem = 16px
+  const gapRem = columns >= 5 ? 0.25 : columns >= 4 ? 0.3 : 0.5
+  const gapPx = Math.round(gapRem * 16) // 转换为像素
+  const gapPercent = columns >= 5 ? '0.625%' : columns >= 4 ? '0.78%' : '1.25%'
+  
+  // 计算每列的宽度百分比（考虑间距）
+  const totalGapPercent = (columns - 1) * parseFloat(gapPercent)
+  const cellWidthPercent = (100 - totalGapPercent) / columns
+  
+  // 计算容器宽度（640px标准宽度）
+  const containerWidth = 640
+  const padding = 12 // 预览区域 padding: 0.75rem = 12px
+  const imageWidth = Math.floor((containerWidth - padding * 2 - (columns - 1) * gapPx) / columns)
+  
+  // 生成图片 HTML（使用 table 布局，兼容公众号编辑器，支持响应式和点击放大）
+  // 将图片分组，每组一行
+  const rows = []
+  for (let i = 0; i < props.images.length; i += columns) {
+    rows.push(props.images.slice(i, i + columns))
+  }
+  
+  const rowsHTML = rows.map((row, rowIndex) => {
+    const cellsHTML = row.map((image, cellIndex) => {
+      const index = rowIndex * columns + cellIndex
+      // 计算宽高比（假设是正方形，ratio = 1）
+      const ratio = 1.0
+      // 检测图片类型（从URL或默认jpeg）
+      const imageType = image.url.match(/\.(jpg|jpeg|png|gif|webp)/i)?.[1]?.toLowerCase() || 'jpeg'
+      // 生成随机的文件ID（9位数）
+      const imgFileId = Math.floor(100000000 + Math.random() * 900000000)
+      
+      // 计算右边距和下边距（使用固定像素值，更稳定）
+      // 间距放在 td 的 padding 上，而不是 img 的 margin
+      const paddingRight = cellIndex < row.length - 1 ? gapPx : 0
+      const paddingBottom = rowIndex < rows.length - 1 ? gapPx : 0
+      
+      // 使用简单的样式，避免被公众号编辑器过滤
+      // 移除复杂的 CSS 属性，只保留基础样式
+      return `<td style="width: ${imageWidth}px; padding-right: ${paddingRight}px; padding-bottom: ${paddingBottom}px; vertical-align: top;" width="${imageWidth}">
+        <img alt="图片" class="rich_pages wxw-img" data-ratio="${ratio}" data-s="300,640" data-type="${imageType}" data-w="1080" data-imgfileid="${imgFileId}" data-aistatus="1" style="width: ${imageWidth}px; height: ${imageWidth}px; display: block; border-radius: 4px; object-fit: cover;" data-original-style="width: ${imageWidth}px; height: ${imageWidth}px; display: block; border-radius: 4px; object-fit: cover;" data-src="${image.url}" data-index="${index}" src="${image.url}" _width="${imageWidth}" data-report-img-idx="${index}" data-fail="0" />
+      </td>`
+    }).join('')
+    
+    // 如果这一行的图片数量少于列数，需要填充空的 td
+    const emptyCells = []
+    for (let i = row.length; i < columns; i++) {
+      const paddingRight = i < columns - 1 ? gapPx : 0
+      const paddingBottom = rowIndex < rows.length - 1 ? gapPx : 0
+      emptyCells.push(`<td style="width: ${imageWidth}px; padding-right: ${paddingRight}px; padding-bottom: ${paddingBottom}px;" width="${imageWidth}"></td>`)
+    }
+    
+    return `<tr>
+${cellsHTML}${emptyCells.join('')}
+</tr>`
   }).join('\n')
   
-  // 只生成图片网格布局的 HTML
-  const html = `<div style="display: grid; grid-template-columns: repeat(${columns}, 1fr); gap: ${gap}; padding: 12px;">
-${imagesHTML}
-</div>`
+  // 使用简单的 table 布局，避免复杂样式被过滤
+  // 添加外层容器，设置 padding
+  const html = `<section style="padding: ${padding}px; max-width: ${containerWidth}px; margin: 0 auto;">
+<table style="width: 100%; border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0;" width="100%">
+<tbody>
+${rowsHTML}
+</tbody>
+</table>
+</section>`
   
   return html
 }
 
-// 复制到剪贴板
+// 打开图片预览
+const openPreview = (image, index) => {
+  previewImage.value = image
+  previewIndex.value = index
+  document.body.style.overflow = 'hidden'
+}
+
+// 关闭图片预览
+const closePreview = () => {
+  previewImage.value = null
+  document.body.style.overflow = ''
+}
+
+// 上一张图片
+const prevImage = () => {
+  if (previewIndex.value > 0) {
+    previewIndex.value--
+    previewImage.value = props.images[previewIndex.value]
+  }
+}
+
+// 下一张图片
+const nextImage = () => {
+  if (previewIndex.value < props.images.length - 1) {
+    previewIndex.value++
+    previewImage.value = props.images[previewIndex.value]
+  }
+}
+
+// 键盘事件处理
+const handleKeydown = (e) => {
+  if (previewImage.value) {
+    if (e.key === 'Escape') {
+      closePreview()
+    } else if (e.key === 'ArrowLeft') {
+      prevImage()
+    } else if (e.key === 'ArrowRight') {
+      nextImage()
+    }
+  }
+}
+
+// 组件挂载时添加键盘监听
+onMounted(() => {
+  window.addEventListener('keydown', handleKeydown)
+})
+
+// 组件卸载时移除键盘监听
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeydown)
+  document.body.style.overflow = ''
+})
+
+// 复制到剪贴板（复制渲染后的HTML内容）
 const copyToClipboard = async () => {
   if (props.images.length === 0) return
   
@@ -163,21 +314,32 @@ const copyToClipboard = async () => {
     
     const html = generateHTML()
     
-    // 使用 Clipboard API
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(html)
-    } else {
-      // 降级方案：使用传统方法
-      const textArea = document.createElement('textarea')
-      textArea.value = html
-      textArea.style.position = 'fixed'
-      textArea.style.left = '-999999px'
-      textArea.style.top = '-999999px'
-      document.body.appendChild(textArea)
-      textArea.focus()
-      textArea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textArea)
+    // 创建一个临时的可编辑div来渲染HTML
+    const tempDiv = document.createElement('div')
+    tempDiv.contentEditable = 'true'
+    tempDiv.style.position = 'fixed'
+    tempDiv.style.left = '-999999px'
+    tempDiv.style.top = '-999999px'
+    tempDiv.style.width = '640px'
+    tempDiv.innerHTML = html
+    document.body.appendChild(tempDiv)
+    
+    // 选中所有内容
+    const range = document.createRange()
+    range.selectNodeContents(tempDiv)
+    const selection = window.getSelection()
+    selection.removeAllRanges()
+    selection.addRange(range)
+    
+    // 使用 execCommand 复制（支持HTML格式）
+    const success = document.execCommand('copy')
+    
+    // 清理
+    selection.removeAllRanges()
+    document.body.removeChild(tempDiv)
+    
+    if (!success) {
+      throw new Error('execCommand copy failed')
     }
     
     copySuccess.value = true
@@ -188,7 +350,39 @@ const copyToClipboard = async () => {
     }, 3000)
   } catch (error) {
     console.error('复制失败:', error)
-    alert('复制失败，请手动复制')
+    // 降级方案：尝试使用 Clipboard API
+    try {
+      const html = generateHTML()
+      
+      // 尝试使用 ClipboardItem API（支持HTML格式）
+      if (navigator.clipboard && navigator.clipboard.write && window.ClipboardItem) {
+        const htmlBlob = new Blob([html], { type: 'text/html' })
+        const textBlob = new Blob([html], { type: 'text/plain' })
+        const clipboardItem = new ClipboardItem({
+          'text/html': htmlBlob,
+          'text/plain': textBlob
+        })
+        await navigator.clipboard.write([clipboardItem])
+        copySuccess.value = true
+        setTimeout(() => {
+          copySuccess.value = false
+        }, 3000)
+      } else {
+        // 最后降级：纯文本复制
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(html)
+          copySuccess.value = true
+          setTimeout(() => {
+            copySuccess.value = false
+          }, 3000)
+        } else {
+          alert('复制失败，请手动复制')
+        }
+      }
+    } catch (fallbackError) {
+      console.error('降级复制也失败:', fallbackError)
+      alert('复制失败，请手动复制')
+    }
   } finally {
     isCopying.value = false
   }
@@ -405,9 +599,22 @@ const copyToClipboard = async () => {
   overflow: hidden;
   background: #f9fafb;
   transition: all 0.3s ease;
+  cursor: pointer;
+  width: 100%;
+  height: 0;
+  padding-bottom: 100%; /* 确保正方形 */
+  position: relative;
+}
+
+.article-body.layout-grid .article-image:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .article-body.layout-grid .article-image img {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -423,6 +630,13 @@ const copyToClipboard = async () => {
   overflow: hidden;
   background: #f9fafb;
   border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.article-image:hover {
+  transform: scale(1.01);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .article-image:last-child {
@@ -521,6 +735,146 @@ const copyToClipboard = async () => {
   
   .phone-mockup {
     border-radius: 24px;
+  }
+}
+
+/* 图片预览模态框 */
+.image-preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(10px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.preview-close {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 2001;
+}
+
+.preview-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
+}
+
+.preview-close svg {
+  width: 24px;
+  height: 24px;
+}
+
+.preview-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.preview-content img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.preview-nav {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.preview-nav .nav-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.preview-nav .nav-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.preview-nav .nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.preview-nav .nav-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.preview-nav .nav-info {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  color: white;
+  font-weight: 500;
+  min-width: 80px;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .preview-close {
+    top: 1rem;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+  }
+  
+  .preview-content {
+    padding: 1rem;
+  }
+  
+  .preview-nav {
+    padding: 0.75rem 1.5rem;
+    gap: 1.5rem;
   }
 }
 </style>

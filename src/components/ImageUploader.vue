@@ -1,45 +1,39 @@
 <template>
-  <div class="image-uploader">
-    <div 
-      class="upload-area"
-      :class="{ 'drag-over': isDragOver, 'has-images': images.length > 0 }"
-      @drop="handleDrop"
-      @dragover.prevent="isDragOver = true"
-      @dragleave="isDragOver = false"
-      @click="triggerFileInput"
-    >
-      <input
-        ref="fileInput"
-        type="file"
-        multiple
-        accept="image/*"
-        @change="handleFileSelect"
-        class="file-input"
-      />
-      
-      <div v-if="images.length === 0" class="upload-placeholder">
-        <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <polyline points="17 8 12 3 7 8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <line x1="12" y1="3" x2="12" y2="15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <h3 class="upload-title">拖拽图片到这里</h3>
-        <p class="upload-subtitle">或点击选择文件</p>
-        <p class="upload-hint">支持 JPG、PNG、GIF 格式</p>
-      </div>
-
-      <div v-else class="uploaded-preview">
-        <div class="preview-header">
-          <span class="image-count">已选择 {{ images.length }} 张图片</span>
-          <button @click.stop="clearImages" class="clear-btn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <line x1="18" y1="6" x2="6" y2="18" stroke-width="2"/>
-              <line x1="6" y1="6" x2="18" y2="18" stroke-width="2"/>
-            </svg>
-            清空
-          </button>
+  <div class="image-uploader-wrapper">
+    <div class="image-uploader">
+      <div 
+        class="upload-area"
+        :class="{ 'drag-over': isDragOver, 'has-images': images.length > 0 }"
+        @drop="handleDrop"
+        @dragover.prevent="isDragOver = true"
+        @dragleave="isDragOver = false"
+        @click="triggerFileInput"
+      >
+        <input
+          ref="fileInput"
+          type="file"
+          multiple
+          accept="image/*"
+          @change="handleFileSelect"
+          class="file-input"
+        />
+        
+        <div v-if="images.length === 0" class="upload-placeholder">
+          <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="17 8 12 3 7 8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="12" y1="3" x2="12" y2="15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h3 class="upload-title">拖拽图片到这里</h3>
+          <p class="upload-subtitle">或点击选择文件</p>
+          <p class="upload-hint">支持 JPG、PNG、GIF 格式</p>
         </div>
-        <div class="preview-grid">
+
+        <div v-else class="uploaded-preview">
+          <div class="preview-header" @click.stop>
+            <span class="image-count">已选择 {{ images.length }} 张图片</span>
+          </div>
+        <div class="preview-grid" @click.stop>
           <div 
             v-for="(image, index) in images" 
             :key="index"
@@ -79,7 +73,23 @@
         </div>
       </div>
     </div>
+    
+    <!-- 清空按钮移到外面 -->
+    <button 
+      v-if="images.length > 0"
+      @click="clearImages" 
+      class="clear-btn-external" 
+      type="button"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <line x1="18" y1="6" x2="6" y2="18" stroke-width="2"/>
+        <line x1="6" y1="6" x2="18" y2="18" stroke-width="2"/>
+      </svg>
+      清空
+    </button>
   </div>
+  </div>
+  
 </template>
 
 <script setup>
@@ -305,15 +315,35 @@ const removeImage = (index) => {
   }
 }
 
-const clearImages = () => {
+const clearImages = (event) => {
+  // 确保阻止事件冒泡和默认行为
+  if (event) {
+    event.stopPropagation()
+    event.preventDefault()
+  }
+  
   images.value = []
+  uploadProgress.value = {}
+  uploading.value = false
+  isDragOver.value = false
+  // 重置文件输入框
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+  // 同时触发两个事件，确保父组件状态同步
+  emit('images-uploaded', [])
   emit('clear')
 }
 </script>
 
 <style scoped>
-.image-uploader {
+.image-uploader-wrapper {
   margin-bottom: 3rem;
+  position: relative;
+}
+
+.image-uploader {
+  margin-bottom: 0;
 }
 
 .upload-area {
@@ -409,7 +439,7 @@ const clearImages = () => {
 
 .preview-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   margin-bottom: 1.5rem;
   padding-bottom: 1rem;
@@ -447,6 +477,42 @@ const clearImages = () => {
 .clear-btn svg {
   width: 16px;
   height: 16px;
+}
+
+/* 外部清空按钮样式 */
+.clear-btn-external {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  color: #dc2626;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 1rem;
+  width: 100%;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.15);
+}
+
+.clear-btn-external:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.clear-btn-external:active {
+  transform: translateY(0);
+}
+
+.clear-btn-external svg {
+  width: 18px;
+  height: 18px;
 }
 
 .preview-grid {
