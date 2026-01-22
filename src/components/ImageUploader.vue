@@ -94,8 +94,8 @@ const uploading = ref(false)
 const uploadProgress = ref({})
 
 // GitHub 配置
-const GITHUB_TOKEN = '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'
-const GITHUB_USERNAME = 'bucketio'
+const GIT_TOKEN = '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'
+const GIT_USERNAME = 'bucketio'
 const CDN_BASE = 'https://fastly.jsdelivr.net/gh/bucketio'
 
 // 生成 UUID
@@ -160,12 +160,12 @@ const uploadToGitHub = async (file, index) => {
     const base64Content = await fileToBase64(file)
     
     // GitHub API 上传
-    const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${repoName}/contents/${filePath}`
+    const apiUrl = `https://api.github.com/repos/${GIT_USERNAME}/${repoName}/contents/${filePath}`
     
     const response = await fetch(apiUrl, {
       method: 'PUT',
       headers: {
-        'Authorization': `token ${GITHUB_TOKEN}`,
+        'Authorization': `token ${GIT_TOKEN}`,
         'Content-Type': 'application/json',
         'Accept': 'application/vnd.github.v3+json'
       },
