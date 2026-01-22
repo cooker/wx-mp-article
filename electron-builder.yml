@@ -1,0 +1,25 @@
+appId: com.wxmparticle.app
+productName: 图片批量上传自动排版
+directories:
+  output: dist-electron
+files:
+  - dist/**/*
+  - electron/**/*
+  - node_modules/**/*
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  category: public.app-category.utilities
