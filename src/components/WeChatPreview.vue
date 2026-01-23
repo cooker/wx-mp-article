@@ -46,27 +46,19 @@
           </div>
         </div>
         
-        <div class="article-body">
-          <!-- 按尺寸分组展示图片 -->
+        <div class="article-body" :style="getArticleBodyStyle()">
+          <!-- 按尺寸分组排序展示图片，与网格布局一致 -->
           <div 
-            v-for="(group, groupIndex) in groupedImages" 
-            :key="groupIndex"
-            class="image-size-group"
-            :style="getGroupStyle(group)"
+            v-for="(image, index) in groupedImages" 
+            :key="image.originalIndex"
+            class="article-image"
+            @click="openPreview(image, image.originalIndex)"
           >
-            <div 
-              v-for="(image, index) in group.images" 
-              :key="index"
-              class="article-image"
-              :class="getImageClass(index)"
-              @click="openPreview(image, getImageGlobalIndex(groupIndex, index))"
-            >
-              <img 
-                :src="image.url" 
-                :alt="`图片 ${getImageGlobalIndex(groupIndex, index) + 1}`"
-                @load="onImageLoad"
-              />
-            </div>
+            <img 
+              :src="image.url" 
+              :alt="`图片 ${image.originalIndex + 1}`"
+              @load="onImageLoad"
+            />
           </div>
         </div>
         
@@ -159,17 +151,16 @@ const currentDate = computed(() => {
   return `${year}-${month}-${day}`
 })
 
-// 按图片尺寸分组
+// 按图片尺寸分组并排序
 const groupedImages = computed(() => {
   if (!props.images || props.images.length === 0) {
     return []
   }
   
-  // 使用 Map 来存储不同尺寸的图片组
+  // 按尺寸分组
   const sizeGroups = new Map()
   
   props.images.forEach((image, index) => {
-    // 获取图片尺寸，如果没有则使用默认值
     const width = image.width || 0
     const height = image.height || 0
     const sizeKey = `${width}x${height}`
@@ -179,6 +170,7 @@ const groupedImages = computed(() => {
         sizeKey,
         width,
         height,
+        area: width * height,
         images: []
       })
     }
@@ -189,13 +181,22 @@ const groupedImages = computed(() => {
     })
   })
   
-  // 转换为数组并按尺寸排序（先按宽度，再按高度）
-  return Array.from(sizeGroups.values()).sort((a, b) => {
-    if (a.width !== b.width) {
-      return b.width - a.width // 宽度大的在前
+  // 转换为数组并按尺寸排序（先按面积，再按宽度，最后按高度）
+  const groups = Array.from(sizeGroups.values()).sort((a, b) => {
+    // 先按面积排序（大的在前）
+    if (a.area !== b.area) {
+      return b.area - a.area
     }
-    return b.height - a.height // 高度大的在前
+    // 面积相同，按宽度排序（大的在前）
+    if (a.width !== b.width) {
+      return b.width - a.width
+    }
+    // 宽度也相同，按高度排序（大的在前）
+    return b.height - a.height
   })
+  
+  // 展平所有组的图片，保持组内原始顺序
+  return groups.flatMap(group => group.images)
 })
 
 // 获取图片的全局索引
@@ -232,92 +233,84 @@ const getImageClass = (index) => {
 }
 
 const getArticleBodyStyle = () => {
-  // 完全同步左侧的列数设置，不限制最大列数
+  // 与网格布局保持一致
   const columns = props.gridColumns || 3
-  // 当列数较多时，减小间距以容纳更多列
-  const gap = columns >= 5 ? '0.25rem' : columns >= 4 ? '0.3rem' : '0.5rem'
   return {
+    display: 'grid',
     gridTemplateColumns: `repeat(${columns}, 1fr)`,
-    gap: gap
+    gridAutoRows: '200px',
+    gap: '1rem'
   }
 }
 
-// 生成微信公众号 HTML 代码（只包含图片，按尺寸分组）
+// 生成微信公众号 HTML 代码（按尺寸分组排序，与网格布局一致）
 const generateHTML = () => {
   const columns = props.gridColumns || 3
   
-  // 计算间距，与预览区域保持一致
-  // 预览区域：columns >= 5 ? '0.25rem' : columns >= 4 ? '0.3rem' : '0.5rem'
-  // 转换为像素：假设 1rem = 16px
-  const gapRem = columns >= 5 ? 0.25 : columns >= 4 ? 0.3 : 0.5
-  const gapPx = Math.round(gapRem * 16) // 转换为像素
+  // 计算间距，与网格布局保持一致（1rem = 16px）
+  const gapPx = 16
   
   // 计算容器宽度（640px标准宽度）
   const containerWidth = 640
-  const padding = 12 // 预览区域 padding: 0.75rem = 12px
-  const imageWidth = Math.floor((containerWidth - padding * 2 - (columns - 1) * gapPx) / columns)
+  const padding = 16 // 1rem = 16px
   
-  // 按尺寸分组生成 HTML
-  const groupsHTML = groupedImages.value.map((group, groupIndex) => {
-    const groupImages = group.images
-    let globalIndex = 0
-    // 计算当前组之前的图片总数
-    for (let i = 0; i < groupIndex; i++) {
-      globalIndex += groupedImages.value[i].images.length
-    }
+  // 使用分组排序后的图片
+  const sortedImages = groupedImages.value
+  
+  // 按分组排序后的顺序生成 HTML
+  const rows = []
+  for (let i = 0; i < sortedImages.length; i += columns) {
+    rows.push(sortedImages.slice(i, i + columns))
+  }
+  
+  const rowsHTML = rows.map((row, rowIndex) => {
+    // 计算单张图片的统一尺寸（使用正方形，确保整齐美观）
+    const availableWidth = containerWidth - padding * 2 - (row.length - 1) * gapPx
+    const imageSize = Math.floor(availableWidth / row.length)
     
-    // 将当前组的图片按列数分行
-    const rows = []
-    for (let i = 0; i < groupImages.length; i += columns) {
-      rows.push(groupImages.slice(i, i + columns))
-    }
+    // 统一使用正方形显示，高度和宽度相同，确保整齐美观
+    const rowImageWidth = imageSize
+    const rowImageHeight = imageSize
     
-    const rowsHTML = rows.map((row, rowIndex) => {
-      const cellsHTML = row.map((image, cellIndex) => {
-        const index = globalIndex + rowIndex * columns + cellIndex
-        // 计算宽高比
-        const ratio = image.width && image.height ? (image.width / image.height).toFixed(6) : 1.0
-        // 检测图片类型（从URL或默认jpeg）
-        const imageType = image.url.match(/\.(jpg|jpeg|png|gif|webp)/i)?.[1]?.toLowerCase() || 'jpeg'
-        // 生成随机的文件ID（9位数）
-        const imgFileId = Math.floor(100000000 + Math.random() * 900000000)
-        
-        // 计算右边距和下边距（使用固定像素值，更稳定）
-        const paddingRight = cellIndex < row.length - 1 ? gapPx : 0
-        const paddingBottom = rowIndex < rows.length - 1 ? gapPx : 0
-        
-        // 使用简单的样式，避免被公众号编辑器过滤
-        return `<td style="width: ${imageWidth}px; padding-right: ${paddingRight}px; padding-bottom: ${paddingBottom}px; vertical-align: top;" width="${imageWidth}">
-        <img alt="图片" class="rich_pages wxw-img" data-ratio="${ratio}" data-s="300,640" data-type="${imageType}" data-w="1080" data-imgfileid="${imgFileId}" data-aistatus="1" style="width: ${imageWidth}px; height: ${imageWidth}px; display: block; border-radius: 4px; object-fit: cover;" data-original-style="width: ${imageWidth}px; height: ${imageWidth}px; display: block; border-radius: 4px; object-fit: cover;" data-src="${image.url}" data-index="${index}" src="${image.url}" _width="${imageWidth}" data-report-img-idx="${index}" data-fail="0" />
+    const cellsHTML = row.map((image, cellIndex) => {
+      const index = image.originalIndex
+      
+      // 检测图片类型（从URL或默认jpeg）
+      const imageType = image.url.match(/\.(jpg|jpeg|png|gif|webp)/i)?.[1]?.toLowerCase() || 'jpeg'
+      // 生成随机的文件ID（9位数）
+      const imgFileId = Math.floor(100000000 + Math.random() * 900000000)
+      
+      // 计算右边距和下边距（使用固定像素值，更稳定）
+      const paddingRight = cellIndex < row.length - 1 ? gapPx : 0
+      const paddingBottom = rowIndex < rows.length - 1 ? gapPx : 0
+      
+      // 使用统一的尺寸，确保同一行图片大小一致，美观整齐
+      return `<td style="width: ${rowImageWidth}px; padding-right: ${paddingRight}px; padding-bottom: ${paddingBottom}px; vertical-align: top;" width="${rowImageWidth}">
+        <img alt="图片" class="rich_pages wxw-img" data-ratio="1" data-s="300,640" data-type="${imageType}" data-w="1080" data-imgfileid="${imgFileId}" data-aistatus="1" style="width: ${rowImageWidth}px; height: ${rowImageHeight}px; display: block; border-radius: 16px; object-fit: cover;" data-original-style="width: ${rowImageWidth}px; height: ${rowImageHeight}px; display: block; border-radius: 16px; object-fit: cover;" data-src="${image.url}" data-index="${index}" src="${image.url}" _width="${rowImageWidth}" data-report-img-idx="${index}" data-fail="0" />
       </td>`
-      }).join('')
-      
-      // 如果这一行的图片数量少于列数，需要填充空的 td
-      const emptyCells = []
-      for (let i = row.length; i < columns; i++) {
-        const paddingRight = i < columns - 1 ? gapPx : 0
-        const paddingBottom = rowIndex < rows.length - 1 ? gapPx : 0
-        emptyCells.push(`<td style="width: ${imageWidth}px; padding-right: ${paddingRight}px; padding-bottom: ${paddingBottom}px;" width="${imageWidth}"></td>`)
-      }
-      
-      return `<tr>
+    }).join('')
+    
+    // 如果这一行的图片数量少于列数，需要填充空的 td
+    const emptyCells = []
+    for (let i = row.length; i < columns; i++) {
+      const paddingRight = i < columns - 1 ? gapPx : 0
+      const paddingBottom = rowIndex < rows.length - 1 ? gapPx : 0
+      emptyCells.push(`<td style="width: ${rowImageWidth}px; padding-right: ${paddingRight}px; padding-bottom: ${paddingBottom}px;" width="${rowImageWidth}"></td>`)
+    }
+    
+    return `<tr>
 ${cellsHTML}${emptyCells.join('')}
 </tr>`
-    }).join('\n')
-    
-    // 每个尺寸组使用独立的 table，组之间添加间距
-    const groupMarginBottom = groupIndex < groupedImages.value.length - 1 ? '1rem' : '0'
-    return `<table style="width: 100%; border-collapse: collapse; border-spacing: 0; margin: 0 0 ${groupMarginBottom} 0; padding: 0;" width="100%">
-<tbody>
-${rowsHTML}
-</tbody>
-</table>`
   }).join('\n')
   
   // 使用简单的 table 布局，避免复杂样式被过滤
   // 添加外层容器，设置 padding
   const html = `<section style="padding: ${padding}px; max-width: ${containerWidth}px; margin: 0 auto;">
-${groupsHTML}
+<table style="width: 100%; border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0;" width="100%">
+<tbody>
+${rowsHTML}
+</tbody>
+</table>
 </section>`
   
   return html
@@ -654,78 +647,33 @@ const copyToClipboard = async () => {
 
 .article-body {
   padding: 1rem;
+  display: grid;
+  gap: 1rem;
 }
 
-/* 图片尺寸分组样式 */
-.image-size-group {
-  margin-bottom: 1rem;
-}
-
-.image-size-group:last-child {
-  margin-bottom: 0;
-}
-
-/* 网格布局 */
-.article-body.layout-grid {
-  padding: 0.75rem;
-}
-
-.image-size-group .article-image {
-  margin-bottom: 0;
-  aspect-ratio: 1;
-  border-radius: 4px;
-  overflow: hidden;
-  background: #f9fafb;
-  transition: all 0.3s ease;
-  cursor: pointer;
-  width: 100%;
-  height: 0;
-  padding-bottom: 100%; /* 确保正方形 */
-  position: relative;
-}
-
-.image-size-group .article-image:hover {
-  transform: scale(1.02);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.image-size-group .article-image img {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-
-/* 默认布局（单列） */
+/* 网格布局 - 与 ImageLayout 保持一致 */
 .article-image {
-  margin-bottom: 1rem;
-  width: 100%;
+  border-radius: 16px;
   overflow: hidden;
-  background: #f9fafb;
-  border-radius: 4px;
+  position: relative;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  height: 200px;
 }
 
 .article-image:hover {
-  transform: scale(1.01);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.article-image:last-child {
-  margin-bottom: 0;
+  transform: scale(1.06) translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+  z-index: 10;
 }
 
 .article-image img {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
   display: block;
-  opacity: 0;
+  opacity: 1;
   transition: opacity 0.3s;
 }
 
