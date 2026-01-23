@@ -53,6 +53,34 @@ npm run build
 npm run preview
 ```
 
+### 打包为桌面应用
+
+#### 开发模式运行 Electron
+
+```bash
+npm run electron:dev
+```
+
+#### 打包所有平台
+
+```bash
+npm run electron:build
+```
+
+#### 仅打包 Windows
+
+```bash
+npm run electron:build:win
+```
+
+#### 仅打包 macOS
+
+```bash
+npm run electron:build:mac
+```
+
+打包后的文件会在 `dist-electron` 目录中。
+
 ## 使用说明
 
 1. **上传图片**：将图片拖拽到上传区域，或点击选择文件

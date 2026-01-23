@@ -1,14 +1,31 @@
 <template>
   <div class="image-layout">
     <div class="layout-controls">
-      <h2 class="controls-title">排版设置</h2>
+      <div class="controls-header">
+        <h2 class="controls-title">排版设置</h2>
+        <button 
+          v-if="images.length > 0"
+          @click="copyToClipboard"
+          class="copy-html-btn"
+          :disabled="isCopying"
+        >
+          <svg v-if="!copySuccess" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" stroke-width="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke-width="2"/>
+          </svg>
+          <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <polyline points="20 6 9 17 4 12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>{{ copySuccess ? '已复制' : '复制HTML' }}</span>
+        </button>
+      </div>
       
       <!-- 网格列数设置 -->
       <div class="grid-columns-control">
         <label class="columns-label">列数设置</label>
         <div class="columns-buttons">
           <button
-            v-for="cols in [2, 3, 4, 5, 6]"
+            v-for="cols in [1, 2, 3, 4, 5, 6]"
             :key="cols"
             @click="setGridColumns(cols)"
             :class="['column-btn', { active: gridColumns === cols }]"
@@ -24,20 +41,20 @@
       :style="getContainerStyle()"
     >
       <div 
-        v-for="(image, index) in images" 
-        :key="index"
+        v-for="(image, index) in groupedImages" 
+        :key="image.originalIndex"
         class="layout-item"
         :style="getItemStyle(image, index)"
-        @click="openPreview(image, index)"
+        @click="openPreview(image, image.originalIndex)"
       >
         <img 
           :src="image.url" 
-          :alt="`图片 ${index + 1}`"
+          :alt="`图片 ${image.originalIndex + 1}`"
           :loading="index > 8 ? 'lazy' : 'eager'"
-          @load="onImageLoad($event, index)"
+          @load="onImageLoad($event, image.originalIndex)"
         />
         <div class="image-overlay">
-          <span class="image-number">{{ index + 1 }}</span>
+          <span class="image-number">{{ image.originalIndex + 1 }}</span>
         </div>
       </div>
     </div>
@@ -85,7 +102,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 
 const props = defineProps({
   images: {
@@ -107,11 +124,66 @@ const emit = defineEmits(['layout-change', 'grid-columns-change'])
 const previewImage = ref(null)
 const previewIndex = ref(0)
 const localGridColumns = ref(props.gridColumns)
+const isCopying = ref(false)
+const copySuccess = ref(false)
 
 const setGridColumns = (cols) => {
   localGridColumns.value = cols
   emit('grid-columns-change', cols)
 }
+
+// 当前选中的列数（用于模板）
+const gridColumns = computed(() => {
+  return localGridColumns.value || props.gridColumns || 3
+})
+
+// 按尺寸分组并排序图片
+const groupedImages = computed(() => {
+  if (!props.images || props.images.length === 0) {
+    return []
+  }
+  
+  // 按尺寸分组
+  const sizeGroups = new Map()
+  
+  props.images.forEach((image, index) => {
+    const width = image.width || 0
+    const height = image.height || 0
+    const sizeKey = `${width}x${height}`
+    
+    if (!sizeGroups.has(sizeKey)) {
+      sizeGroups.set(sizeKey, {
+        sizeKey,
+        width,
+        height,
+        area: width * height,
+        images: []
+      })
+    }
+    
+    sizeGroups.get(sizeKey).images.push({
+      ...image,
+      originalIndex: index
+    })
+  })
+  
+  // 转换为数组并按尺寸排序（先按面积，再按宽度，最后按高度）
+  const groups = Array.from(sizeGroups.values()).sort((a, b) => {
+    // 先按面积排序（大的在前）
+    if (a.area !== b.area) {
+      return b.area - a.area
+    }
+    // 面积相同，按宽度排序（大的在前）
+    if (a.width !== b.width) {
+      return b.width - a.width
+    }
+    // 宽度也相同，按高度排序（大的在前）
+    return b.height - a.height
+  })
+  
+  // 展平所有组的图片，保持组内原始顺序
+  return groups.flatMap(group => group.images)
+})
 
 const getContainerStyle = () => {
   const columns = localGridColumns.value || props.gridColumns || 3
@@ -169,6 +241,165 @@ const nextImage = () => {
   }
 }
 
+// 生成 HTML 代码（按尺寸分组排序，优化显示效果）
+const generateHTML = () => {
+  const columns = localGridColumns.value || props.gridColumns || 3
+  
+  // 计算间距，与网格布局保持一致（1rem = 16px）
+  const gapPx = 16
+  
+  // 计算容器宽度（640px标准宽度）
+  const containerWidth = 640
+  const padding = 16 // 1rem = 16px
+  
+  // 使用分组排序后的图片
+  const sortedImages = groupedImages.value
+  
+  // 按分组排序后的顺序生成 HTML
+  const rows = []
+  for (let i = 0; i < sortedImages.length; i += columns) {
+    rows.push(sortedImages.slice(i, i + columns))
+  }
+  
+  const rowsHTML = rows.map((row, rowIndex) => {
+    // 计算单张图片的统一尺寸（使用正方形，确保整齐美观）
+    const availableWidth = containerWidth - padding * 2 - (row.length - 1) * gapPx
+    const imageSize = Math.floor(availableWidth / row.length)
+    
+    // 统一使用正方形显示，高度和宽度相同，确保整齐美观
+    const imageWidth = imageSize
+    const imageHeight = imageSize
+    
+    const cellsHTML = row.map((image, cellIndex) => {
+      const index = image.originalIndex
+      
+      // 计算图片的实际宽高比（用于data-ratio属性）
+      const ratio = image.width && image.height ? (image.width / image.height) : 1.0
+      
+      // 检测图片类型（从URL或默认jpeg）
+      const imageType = image.url.match(/\.(jpg|jpeg|png|gif|webp)/i)?.[1]?.toLowerCase() || 'jpeg'
+      // 生成随机的文件ID（9位数）
+      const imgFileId = Math.floor(100000000 + Math.random() * 900000000)
+      
+      // 计算右边距和下边距（使用固定像素值，更稳定）
+      const paddingRight = cellIndex < row.length - 1 ? gapPx : 0
+      const paddingBottom = rowIndex < rows.length - 1 ? gapPx : 0
+      
+      // 使用统一的尺寸，确保同一行图片大小一致，美观整齐
+      return `<td style="width: ${imageWidth}px; padding-right: ${paddingRight}px; padding-bottom: ${paddingBottom}px; vertical-align: top;" width="${imageWidth}">
+        <img alt="图片" class="rich_pages wxw-img" data-ratio="1" data-s="300,640" data-type="${imageType}" data-w="1080" data-imgfileid="${imgFileId}" data-aistatus="1" style="width: ${imageWidth}px; height: ${imageHeight}px; display: block; border-radius: 16px; object-fit: cover;" data-original-style="width: ${imageWidth}px; height: ${imageHeight}px; display: block; border-radius: 16px; object-fit: cover;" data-src="${image.url}" data-index="${index}" src="${image.url}" _width="${imageWidth}" data-report-img-idx="${index}" data-fail="0" />
+      </td>`
+    }).join('')
+    
+    // 如果这一行的图片数量少于列数，需要填充空的 td
+    const emptyCells = []
+    for (let i = row.length; i < columns; i++) {
+      const paddingRight = i < columns - 1 ? gapPx : 0
+      const paddingBottom = rowIndex < rows.length - 1 ? gapPx : 0
+      emptyCells.push(`<td style="width: ${imageWidth}px; padding-right: ${paddingRight}px; padding-bottom: ${paddingBottom}px;" width="${imageWidth}"></td>`)
+    }
+    
+    return `<tr>
+${cellsHTML}${emptyCells.join('')}
+</tr>`
+  }).join('\n')
+  
+  // 使用简单的 table 布局，避免复杂样式被过滤
+  // 添加外层容器，设置 padding
+  const html = `<section style="padding: ${padding}px; max-width: ${containerWidth}px; margin: 0 auto;">
+<table style="width: 100%; border-collapse: collapse; border-spacing: 0; margin: 0; padding: 0;" width="100%">
+<tbody>
+${rowsHTML}
+</tbody>
+</table>
+</section>`
+  
+  return html
+}
+
+// 复制 HTML 到剪贴板
+const copyToClipboard = async () => {
+  if (isCopying.value || props.images.length === 0) {
+    return
+  }
+  
+  isCopying.value = true
+  copySuccess.value = false
+  
+  try {
+    const html = generateHTML()
+    
+    // 尝试使用 Clipboard API
+    if (navigator.clipboard && navigator.clipboard.write) {
+      try {
+        const htmlBlob = new Blob([html], { type: 'text/html' })
+        const textBlob = new Blob([html], { type: 'text/plain' })
+        const clipboardItem = new ClipboardItem({
+          'text/html': htmlBlob,
+          'text/plain': textBlob
+        })
+        await navigator.clipboard.write([clipboardItem])
+        copySuccess.value = true
+        setTimeout(() => {
+          copySuccess.value = false
+        }, 3000)
+        return
+      } catch (clipboardError) {
+        console.warn('ClipboardItem API 失败，尝试降级方案:', clipboardError)
+      }
+    }
+    
+    // 降级方案：使用 execCommand
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = html
+    tempDiv.style.position = 'fixed'
+    tempDiv.style.left = '-9999px'
+    document.body.appendChild(tempDiv)
+    
+    const selection = window.getSelection()
+    const range = document.createRange()
+    range.selectNodeContents(tempDiv)
+    selection.removeAllRanges()
+    selection.addRange(range)
+    
+    const success = document.execCommand('copy')
+    
+    // 清理
+    selection.removeAllRanges()
+    document.body.removeChild(tempDiv)
+    
+    if (!success) {
+      throw new Error('execCommand copy failed')
+    }
+    
+    copySuccess.value = true
+    
+    // 3秒后重置状态
+    setTimeout(() => {
+      copySuccess.value = false
+    }, 3000)
+  } catch (error) {
+    console.error('复制失败:', error)
+    // 最后降级：纯文本复制
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(generateHTML())
+        copySuccess.value = true
+        setTimeout(() => {
+          copySuccess.value = false
+        }, 3000)
+      } else {
+        alert('复制失败，请手动复制')
+      }
+    } catch (fallbackError) {
+      console.error('降级复制也失败:', fallbackError)
+      alert('复制失败，请手动复制')
+    }
+  } finally {
+    isCopying.value = false
+  }
+}
+
 // 键盘事件
 const handleKeydown = (e) => {
   if (previewImage.value) {
@@ -198,8 +429,8 @@ onUnmounted(() => {
 .image-layout {
   background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(20px);
-  border-radius: 28px;
-  padding: 3rem;
+  border-radius: 24px;
+  padding: 2.5rem;
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.12),
     0 0 0 1px rgba(255, 255, 255, 0.5) inset;
@@ -213,15 +444,64 @@ onUnmounted(() => {
 }
 
 .layout-controls {
-  margin-bottom: 2.5rem;
-  padding-bottom: 2rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.75rem;
   border-bottom: 2px solid rgba(102, 126, 234, 0.12);
 }
 
+.controls-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.copy-html-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  white-space: nowrap;
+}
+
+.copy-html-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.copy-html-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.copy-html-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.copy-html-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.copy-html-btn span {
+  font-weight: 500;
+}
+
 .grid-columns-control {
-  margin-top: 1.5rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(102, 126, 234, 0.08);
+  margin-top: 0;
+  padding-top: 0;
 }
 
 .columns-label {
@@ -266,11 +546,12 @@ onUnmounted(() => {
 
 .controls-title {
   font-family: 'Inter', sans-serif;
-  font-size: 1.375rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #1a202c;
-  margin: 0 0 1.75rem;
+  margin: 0;
   letter-spacing: -0.01em;
+  flex: 1;
 }
 
 .layout-buttons {
@@ -341,7 +622,7 @@ onUnmounted(() => {
 /* 网格布局 */
 .layout-grid {
   grid-auto-rows: 200px;
-  gap: 1.25rem;
+  gap: 1rem;
 }
 
 .layout-grid .layout-item {
@@ -530,9 +811,23 @@ onUnmounted(() => {
     padding-bottom: 1.5rem;
   }
   
+  .controls-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
   .controls-title {
     font-size: 1.25rem;
-    margin-bottom: 1.5rem;
+    margin-bottom: 0;
+  }
+  
+  .copy-html-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.625rem 1rem;
+    font-size: 0.8125rem;
   }
   
   .layout-buttons {
