@@ -20,6 +20,20 @@
         </button>
       </div>
       
+      <!-- 分辨率组信息 -->
+      <div v-if="currentResolutionGroups.length > 0" class="resolution-info-section">
+        <label class="resolution-info-label">当前显示的分辨率组：</label>
+        <div class="resolution-tags">
+          <span
+            v-for="group in currentResolutionGroups"
+            :key="group.resolution"
+            class="resolution-tag"
+          >
+            {{ group.resolution }} ({{ group.count }}张)
+          </span>
+        </div>
+      </div>
+      
       <!-- 网格列数设置 -->
       <div class="grid-columns-control">
         <label class="columns-label">列数设置</label>
@@ -37,6 +51,7 @@
     </div>
 
     <div 
+      v-if="groupedImages.length > 0"
       class="layout-container layout-grid"
       :style="getContainerStyle()"
     >
@@ -57,6 +72,11 @@
           <span class="image-number">{{ image.originalIndex + 1 }}</span>
         </div>
       </div>
+    </div>
+    
+    <!-- 空状态提示 -->
+    <div v-else class="empty-state">
+      <p class="empty-message">请在上传区域选择要显示的分辨率组</p>
     </div>
 
     <!-- 预览模态框 -->
@@ -135,6 +155,45 @@ const setGridColumns = (cols) => {
 // 当前选中的列数（用于模板）
 const gridColumns = computed(() => {
   return localGridColumns.value || props.gridColumns || 3
+})
+
+// 获取当前显示的分辨率组信息
+const currentResolutionGroups = computed(() => {
+  if (!props.images || props.images.length === 0) {
+    return []
+  }
+  
+  // 按分辨率分组
+  const groups = new Map()
+  
+  props.images.forEach((image) => {
+    const width = image.width || 0
+    const height = image.height || 0
+    const resolution = `${width}x${height}`
+    
+    if (!groups.has(resolution)) {
+      groups.set(resolution, {
+        resolution,
+        width,
+        height,
+        area: width * height,
+        count: 0
+      })
+    }
+    
+    groups.get(resolution).count++
+  })
+  
+  // 转换为数组并按面积排序（大的在前）
+  return Array.from(groups.values()).sort((a, b) => {
+    if (a.area !== b.area) {
+      return b.area - a.area
+    }
+    if (a.width !== b.width) {
+      return b.width - a.width
+    }
+    return b.height - a.height
+  })
 })
 
 // 按尺寸分组并排序图片
@@ -499,6 +558,43 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
+/* 分辨率组信息样式 */
+.resolution-info-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: rgba(102, 126, 234, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(102, 126, 234, 0.15);
+}
+
+.resolution-info-label {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #4a5568;
+  margin-bottom: 0.75rem;
+}
+
+.resolution-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.resolution-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+  color: #667eea;
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border: 1px solid rgba(102, 126, 234, 0.3);
+}
+
 .grid-columns-control {
   margin-top: 0;
   padding-top: 0;
@@ -617,6 +713,23 @@ onUnmounted(() => {
 .layout-container {
   display: grid;
   gap: 1rem;
+}
+
+/* 空状态提示 */
+.empty-state {
+  padding: 4rem 2rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  border: 2px dashed rgba(102, 126, 234, 0.3);
+}
+
+.empty-message {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  color: #718096;
+  margin: 0;
+  font-weight: 500;
 }
 
 /* 网格布局 */

@@ -53,6 +53,36 @@ npm run build
 npm run preview
 ```
 
+## GitHub Pages 部署
+
+项目已配置 GitHub Actions 自动部署到 GitHub Pages。
+
+### 部署步骤
+
+1. **启用 GitHub Pages**：
+   - 进入仓库的 Settings → Pages
+   - Source 选择 "GitHub Actions"
+
+2. **推送代码**：
+   - 推送到 `main` 或 `master` 分支
+   - GitHub Actions 会自动构建并部署
+
+3. **访问网站**：
+   - 部署完成后，访问 `https://<username>.github.io/<repository-name>/`
+
+### 手动触发部署
+
+如果需要手动触发部署，可以：
+- 进入仓库的 Actions 页面
+- 选择 "Deploy to GitHub Pages" 工作流
+- 点击 "Run workflow"
+
+### 配置说明
+
+- 工作流文件位于 `.github/workflows/deploy.yml`
+- 构建输出目录：`dist`
+- Base 路径自动设置为 `/<repository-name>/`
+
 ### 打包为桌面应用
 
 #### 开发模式运行 Electron

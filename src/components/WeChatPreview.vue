@@ -46,9 +46,10 @@
           </div>
         </div>
         
-        <div class="article-body" :style="getArticleBodyStyle()">
+        <div class="article-body" :style="groupedImages.length > 0 ? getArticleBodyStyle() : {}">
           <!-- 按尺寸分组排序展示图片，与网格布局一致 -->
           <div 
+            v-if="groupedImages.length > 0"
             v-for="(image, index) in groupedImages" 
             :key="image.originalIndex"
             class="article-image"
@@ -59,6 +60,11 @@
               :alt="`图片 ${image.originalIndex + 1}`"
               @load="onImageLoad"
             />
+          </div>
+          
+          <!-- 空状态提示 -->
+          <div v-else class="preview-empty-state">
+            <p class="preview-empty-message">请在上传区域选择要显示的分辨率组</p>
           </div>
         </div>
         
@@ -675,6 +681,24 @@ const copyToClipboard = async () => {
   display: block;
   opacity: 1;
   transition: opacity 0.3s;
+}
+
+/* 空状态提示 */
+.preview-empty-state {
+  padding: 3rem 2rem;
+  text-align: center;
+  background: rgba(249, 250, 251, 0.8);
+  border-radius: 12px;
+  border: 2px dashed rgba(102, 126, 234, 0.2);
+  margin: 1rem;
+}
+
+.preview-empty-message {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9375rem;
+  color: #9ca3af;
+  margin: 0;
+  font-weight: 500;
 }
 
 .article-footer {

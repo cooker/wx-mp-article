@@ -8,7 +8,7 @@ const __dirname = dirname(__filename)
 
 export default defineConfig({
   plugins: [vue()],
-  base: './',
+  base: process.env.BASE_PATH || './',
   server: {
     port: 3000,
     open: false

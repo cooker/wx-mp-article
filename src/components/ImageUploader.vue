@@ -1,5 +1,68 @@
 <template>
   <div class="image-uploader-wrapper">
+    <!-- GitHub Token 设置 -->
+    <div class="settings-section">
+      <label class="settings-label">
+        <span>GitHub Token:</span>
+        <div class="token-input-wrapper">
+          <input
+            v-model="githubToken"
+            @input="saveToken"
+            :type="showToken ? 'text' : 'password'"
+            placeholder="请输入 GitHub Personal Access Token"
+            class="token-input"
+          />
+          <button
+            type="button"
+            @click="showToken = !showToken"
+            class="toggle-token-btn"
+            :aria-label="showToken ? '隐藏Token' : '显示Token'"
+          >
+            <svg v-if="showToken" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <line x1="1" y1="1" x2="23" y2="23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="12" cy="12" r="3" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+      </label>
+      <p class="settings-hint">Token 将保存在本地浏览器中</p>
+    </div>
+    
+    <!-- 分辨率分组选择器 -->
+    <div v-if="resolutionGroups.length > 0" class="resolution-filter-section">
+      <div class="filter-header">
+        <h3 class="filter-title">选择分辨率组</h3>
+        <div class="filter-actions">
+          <button @click="selectAllGroups" class="filter-action-btn">全选</button>
+          <button @click="deselectAllGroups" class="filter-action-btn">全不选</button>
+        </div>
+      </div>
+      <div class="resolution-groups">
+        <label
+          v-for="group in resolutionGroups"
+          :key="group.resolution"
+          class="resolution-group-item"
+          :class="{ 'active': selectedResolutions.includes(group.resolution) }"
+        >
+          <input
+            type="checkbox"
+            :value="group.resolution"
+            v-model="selectedResolutions"
+            @change="onResolutionChange"
+            class="resolution-checkbox"
+          />
+          <div class="group-info">
+            <span class="group-resolution">{{ group.resolution }}</span>
+            <span class="group-count">({{ group.images.length }}张)</span>
+          </div>
+        </label>
+      </div>
+    </div>
+    
     <div class="image-uploader">
       <div 
         class="upload-area"
@@ -93,7 +156,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 
 const emit = defineEmits(['images-uploaded', 'clear'])
 
@@ -103,9 +166,136 @@ const isDragOver = ref(false)
 const uploading = ref(false)
 const uploadProgress = ref({})
 
-const KEY = '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'
+// 选中的分辨率组（数组存储）
+const selectedResolutions = ref([])
+
+// GitHub Token 存储键名
+const TOKEN_STORAGE_KEY = 'github_token'
+
+// 从 localStorage 读取保存的 Token，如果没有则使用空字符串
+const githubToken = ref(localStorage.getItem(TOKEN_STORAGE_KEY) || '')
+const showToken = ref(false)
+
+// 保存 Token 到 localStorage
+const saveToken = () => {
+  if (githubToken.value.trim()) {
+    localStorage.setItem(TOKEN_STORAGE_KEY, githubToken.value.trim())
+  } else {
+    localStorage.removeItem(TOKEN_STORAGE_KEY)
+  }
+}
+
+// 使用响应式的 Token
+const KEY = computed(() => githubToken.value.trim())
+
 const USER = 'bucketio'
 const CDN_BASE = 'https://fastly.jsdelivr.net/gh/bucketio'
+
+// 按分辨率分组图片
+const resolutionGroups = computed(() => {
+  if (!images.value || images.value.length === 0) {
+    return []
+  }
+  
+  const groups = new Map()
+  
+  images.value.forEach((image) => {
+    const width = image.width || 0
+    const height = image.height || 0
+    const resolution = `${width}x${height}`
+    
+    if (!groups.has(resolution)) {
+      groups.set(resolution, {
+        resolution,
+        width,
+        height,
+        area: width * height,
+        images: []
+      })
+    }
+    
+    groups.get(resolution).images.push(image)
+  })
+  
+  // 转换为数组并按面积排序（大的在前）
+  return Array.from(groups.values()).sort((a, b) => b.area - a.area)
+})
+
+// 根据选中的分辨率过滤图片
+const filteredImages = computed(() => {
+  if (selectedResolutions.value.length === 0) {
+    return []
+  }
+  
+  const selectedSet = new Set(selectedResolutions.value)
+  return images.value.filter(image => {
+    const width = image.width || 0
+    const height = image.height || 0
+    const resolution = `${width}x${height}`
+    return selectedSet.has(resolution)
+  })
+})
+
+// 全选所有分辨率组
+const selectAllGroups = () => {
+  selectedResolutions.value = resolutionGroups.value.map(group => group.resolution)
+  onResolutionChange()
+}
+
+// 全不选
+const deselectAllGroups = () => {
+  selectedResolutions.value = []
+  onResolutionChange()
+}
+
+// 分辨率选择变化时的处理
+const onResolutionChange = () => {
+  emit('images-uploaded', filteredImages.value)
+}
+
+// 自动选中新上传图片的分辨率组
+const autoSelectNewResolutions = (newImages) => {
+  const newResolutions = new Set()
+  newImages.forEach(image => {
+    if (image.width && image.height) {
+      const resolution = `${image.width}x${image.height}`
+      newResolutions.add(resolution)
+    }
+  })
+  
+  // 将新的分辨率添加到选中列表（如果还没有选中）
+  newResolutions.forEach(resolution => {
+    if (!selectedResolutions.value.includes(resolution)) {
+      selectedResolutions.value.push(resolution)
+    }
+  })
+  
+  // 如果之前没有选中任何分辨率，自动选中所有
+  if (selectedResolutions.value.length === 0 && resolutionGroups.value.length > 0) {
+    selectedResolutions.value = resolutionGroups.value.map(group => group.resolution)
+  }
+}
+
+// 发送过滤后的图片给父组件
+const emitFilteredImages = () => {
+  // 确保有选中的分辨率时才发送
+  if (selectedResolutions.value.length > 0) {
+    emit('images-uploaded', filteredImages.value)
+  } else {
+    emit('images-uploaded', [])
+  }
+}
+
+// 监听 images 变化，自动选中新添加图片的分辨率组
+watch(() => images.value.length, (newLength, oldLength) => {
+  if (newLength > oldLength && resolutionGroups.value.length > 0) {
+    // 如果有新图片添加，且之前没有选中任何分辨率，自动选中所有
+    if (selectedResolutions.value.length === 0) {
+      selectedResolutions.value = resolutionGroups.value.map(group => group.resolution)
+      emitFilteredImages()
+    }
+  }
+}, { immediate: false })
 
 // 生成 UUID
 const generateUUID = () => {
@@ -156,6 +346,14 @@ const fileToBase64 = (file) => {
 
 // 上传图片到 GitHub
 const uploadToGitHub = async (file, index) => {
+  // 验证 Token 是否已输入
+  if (!KEY.value) {
+    images.value[index].uploadError = true
+    images.value[index].isUploading = false
+    alert('请先输入 GitHub Token')
+    return
+  }
+  
   try {
     uploading.value = true
     uploadProgress.value[index] = '上传中...'
@@ -174,7 +372,7 @@ const uploadToGitHub = async (file, index) => {
     const response = await fetch(apiUrl, {
       method: 'PUT',
       headers: {
-        'Authorization': `token ${KEY}`,
+        'Authorization': `token ${KEY.value}`,
         'Content-Type': 'application/json',
         'Accept': 'application/vnd.github.v3+json'
       },
@@ -264,7 +462,10 @@ const processFiles = async (files) => {
   // 添加到 images，显示上传状态
   const startIndex = images.value.length
   images.value = [...images.value, ...localPreviews]
-  emit('images-uploaded', images.value)
+  
+  // 自动选中新上传图片的分辨率组
+  autoSelectNewResolutions(localPreviews)
+  emitFilteredImages()
   
   // 逐个上传到 GitHub
   const uploadedImages = []
@@ -292,7 +493,10 @@ const processFiles = async (files) => {
       
       // 更新对应位置的图片
       images.value[index] = uploadedImage
-      emit('images-uploaded', images.value)
+      
+      // 自动选中新上传图片的分辨率组
+      autoSelectNewResolutions([uploadedImage])
+      emitFilteredImages()
       
       // 清除上传状态
       delete uploadProgress.value[index]
@@ -301,7 +505,7 @@ const processFiles = async (files) => {
       // 保留本地预览，但标记为上传失败
       images.value[index].uploadError = true
       images.value[index].isUploading = false
-      emit('images-uploaded', images.value)
+      emitFilteredImages()
     }
   }
 }
@@ -309,9 +513,10 @@ const processFiles = async (files) => {
 const removeImage = (index) => {
   images.value.splice(index, 1)
   if (images.value.length === 0) {
+    selectedResolutions.value = []
     emit('clear')
   } else {
-    emit('images-uploaded', images.value)
+    emitFilteredImages()
   }
 }
 
@@ -323,6 +528,7 @@ const clearImages = (event) => {
   }
   
   images.value = []
+  selectedResolutions.value = []
   uploadProgress.value = {}
   uploading.value = false
   isDragOver.value = false
@@ -337,6 +543,200 @@ const clearImages = (event) => {
 </script>
 
 <style scoped>
+/* 设置区域样式 */
+.settings-section {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+}
+
+.settings-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  font-family: 'Inter', sans-serif;
+}
+
+.settings-label span {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #4a5568;
+}
+
+.token-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.token-input {
+  width: 100%;
+  padding: 0.75rem 3rem 0.75rem 1rem;
+  border: 2px solid rgba(102, 126, 234, 0.2);
+  border-radius: 10px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  color: #1a202c;
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggle-token-btn {
+  position: absolute;
+  right: 0.5rem;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #718096;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.toggle-token-btn:hover {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.toggle-token-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.token-input:focus {
+  outline: none;
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  background: rgba(255, 255, 255, 1);
+}
+
+.token-input::placeholder {
+  color: #a0aec0;
+}
+
+.settings-hint {
+  margin: 0.5rem 0 0 0;
+  font-size: 0.8125rem;
+  color: #718096;
+  font-family: 'Inter', sans-serif;
+}
+
+/* 分辨率分组选择器样式 */
+.resolution-filter-section {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.filter-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.filter-action-btn {
+  padding: 0.5rem 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  border: 1px solid rgba(102, 126, 234, 0.2);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filter-action-btn:hover {
+  background: rgba(102, 126, 234, 0.15);
+  border-color: rgba(102, 126, 234, 0.3);
+  transform: translateY(-1px);
+}
+
+.resolution-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.resolution-group-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: rgba(102, 126, 234, 0.05);
+  border: 2px solid rgba(102, 126, 234, 0.2);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.resolution-group-item:hover {
+  background: rgba(102, 126, 234, 0.1);
+  border-color: rgba(102, 126, 234, 0.3);
+  transform: translateY(-2px);
+}
+
+.resolution-group-item.active {
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.15) 0%, rgba(118, 75, 162, 0.15) 100%);
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.resolution-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #667eea;
+}
+
+.group-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Inter', sans-serif;
+}
+
+.group-resolution {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.group-count {
+  font-size: 0.8125rem;
+  color: #718096;
+}
+
 .image-uploader-wrapper {
   margin-bottom: 3rem;
   position: relative;
