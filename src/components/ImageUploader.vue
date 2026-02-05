@@ -1,37 +1,5 @@
 <template>
   <div class="image-uploader-wrapper">
-    <!-- GitHub Token 设置 -->
-    <div class="settings-section">
-      <label class="settings-label">
-        <span>GitHub Token:</span>
-        <div class="token-input-wrapper">
-          <input
-            v-model="githubToken"
-            @input="saveToken"
-            :type="showToken ? 'text' : 'password'"
-            placeholder="请输入 GitHub Personal Access Token"
-            class="token-input"
-          />
-          <button
-            type="button"
-            @click="showToken = !showToken"
-            class="toggle-token-btn"
-            :aria-label="showToken ? '隐藏Token' : '显示Token'"
-          >
-            <svg v-if="showToken" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <line x1="1" y1="1" x2="23" y2="23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-            <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              <circle cx="12" cy="12" r="3" stroke-width="2"/>
-            </svg>
-          </button>
-        </div>
-      </label>
-      <p class="settings-hint">Token 将保存在本地浏览器中</p>
-    </div>
-    
     <!-- 分辨率分组选择器 -->
     <div v-if="resolutionGroups.length > 0" class="resolution-filter-section">
       <div class="filter-header">
@@ -157,6 +125,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { useGitHubRepoConfig, getCurrentDatePath } from '../composables/useGitHubRepoConfig'
 
 const emit = defineEmits(['images-uploaded', 'clear'])
 
@@ -169,27 +138,15 @@ const uploadProgress = ref({})
 // 选中的分辨率组（数组存储）
 const selectedResolutions = ref([])
 
-// GitHub Token 存储键名
-const TOKEN_STORAGE_KEY = 'github_token'
-
-// 从 localStorage 读取保存的 Token，如果没有则使用空字符串
-const githubToken = ref(localStorage.getItem(TOKEN_STORAGE_KEY) || '')
-const showToken = ref(false)
-
-// 保存 Token 到 localStorage
-const saveToken = () => {
-  if (githubToken.value.trim()) {
-    localStorage.setItem(TOKEN_STORAGE_KEY, githubToken.value.trim())
-  } else {
-    localStorage.removeItem(TOKEN_STORAGE_KEY)
-  }
-}
-
-// 使用响应式的 Token
-const KEY = computed(() => githubToken.value.trim())
-
-const USER = 'bucketio'
-const CDN_BASE = 'https://fastly.jsdelivr.net/gh/bucketio'
+// 使用 GitHub 仓库配置（第一步配置）
+const {
+  owner,
+  repo,
+  token,
+  uploadFileToGitHub: doUploadToGitHub,
+  getJsdelivrUrlForRepo,
+  pathPrefix
+} = useGitHubRepoConfig()
 
 // 按分辨率分组图片
 const resolutionGroups = computed(() => {
@@ -306,23 +263,6 @@ const generateUUID = () => {
   })
 }
 
-// 获取当前日期路径 (格式: 2026/01/22)
-const getDatePath = () => {
-  const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
-  return `${year}/${month}/${day}`
-}
-
-// 选择仓库 (img0-img19)
-let currentRepoIndex = 0
-const getRepoName = () => {
-  const repoName = `img${currentRepoIndex}`
-  currentRepoIndex = (currentRepoIndex + 1) % 20 // 轮询 0-19
-  return repoName
-}
-
 // 生成文件名 (时间戳-UUID.jpg)
 const generateFileName = (originalFile) => {
   const timestamp = Date.now()
@@ -331,75 +271,38 @@ const generateFileName = (originalFile) => {
   return `${timestamp}-${uuid}.${extension}`
 }
 
-// 将文件转换为 base64
-const fileToBase64 = (file) => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const base64 = reader.result.split(',')[1] // 移除 data:image/...;base64, 前缀
-      resolve(base64)
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
-// 上传图片到 GitHub
+// 上传图片到 GitHub（使用第一步配置）
 const uploadToGitHub = async (file, index) => {
-  // 验证 Token 是否已输入
-  if (!KEY.value) {
+  const o = owner.value.trim()
+  const r = repo.value.trim()
+  const t = token.value.trim()
+  if (!o || !r || !t) {
     images.value[index].uploadError = true
     images.value[index].isUploading = false
-    alert('请先输入 GitHub Token')
+    alert('请先在第一步配置 owner、repo 和 Token')
     return
   }
-  
+
   try {
     uploading.value = true
     uploadProgress.value[index] = '上传中...'
-    
-    const repoName = getRepoName()
-    const datePath = getDatePath()
+
+    const prefix = (pathPrefix.value || '').trim().replace(/\/+$/, '') || getCurrentDatePath()
     const fileName = generateFileName(file)
-    const filePath = `${datePath}/${fileName}`
-    
-    // 转换为 base64
-    const base64Content = await fileToBase64(file)
-    
-    // GitHub API 上传
-    const apiUrl = `https://api.github.com/repos/${USER}/${repoName}/contents/${filePath}`
-    
-    const response = await fetch(apiUrl, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `token ${KEY.value}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/vnd.github.v3+json'
-      },
-      body: JSON.stringify({
-        message: `Upload image: ${fileName}`,
-        content: base64Content,
-        branch: 'main'
-      })
-    })
-    
-    if (!response.ok) {
-      const errorData = await response.json()
-      throw new Error(errorData.message || '上传失败')
-    }
-    
-    const data = await response.json()
-    const cdnUrl = `${CDN_BASE}/${repoName}@main/${data.content.path}`
-    
+    const filePath = prefix ? `${prefix}/${fileName}` : fileName
+
+    const result = await doUploadToGitHub(file, filePath)
+    const cdnUrl = getJsdelivrUrlForRepo(result.repo, result.path)
+
     uploadProgress.value[index] = '上传成功'
-    
+
     return {
       url: cdnUrl,
       file: file,
       width: 0,
       height: 0,
       aspectRatio: 1,
-      githubPath: data.content.path
+      githubPath: result.path
     }
   } catch (error) {
     console.error('上传失败:', error)
@@ -543,93 +446,6 @@ const clearImages = (event) => {
 </script>
 
 <style scoped>
-/* 设置区域样式 */
-.settings-section {
-  background: rgba(255, 255, 255, 0.98);
-  backdrop-filter: blur(20px);
-  border-radius: 16px;
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(255, 255, 255, 0.5) inset;
-}
-
-.settings-label {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  font-family: 'Inter', sans-serif;
-}
-
-.settings-label span {
-  font-size: 0.9375rem;
-  font-weight: 500;
-  color: #4a5568;
-}
-
-.token-input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.token-input {
-  width: 100%;
-  padding: 0.75rem 3rem 0.75rem 1rem;
-  border: 2px solid rgba(102, 126, 234, 0.2);
-  border-radius: 10px;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.875rem;
-  color: #1a202c;
-  background: rgba(255, 255, 255, 0.9);
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.toggle-token-btn {
-  position: absolute;
-  right: 0.5rem;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: none;
-  color: #718096;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.toggle-token-btn:hover {
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-}
-
-.toggle-token-btn svg {
-  width: 18px;
-  height: 18px;
-}
-
-.token-input:focus {
-  outline: none;
-  border-color: rgba(102, 126, 234, 0.5);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-  background: rgba(255, 255, 255, 1);
-}
-
-.token-input::placeholder {
-  color: #a0aec0;
-}
-
-.settings-hint {
-  margin: 0.5rem 0 0 0;
-  font-size: 0.8125rem;
-  color: #718096;
-  font-family: 'Inter', sans-serif;
-}
-
 /* 分辨率分组选择器样式 */
 .resolution-filter-section {
   background: rgba(255, 255, 255, 0.98);

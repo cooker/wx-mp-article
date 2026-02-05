@@ -8,6 +8,7 @@
     </header>
 
     <main class="main-content">
+      <GitHubRepoConfig />
       <ImageUploader 
         @images-uploaded="handleImagesUploaded"
         @clear="handleClear"
@@ -44,6 +45,7 @@
 
 <script setup>
 import { ref } from 'vue'
+import GitHubRepoConfig from './components/GitHubRepoConfig.vue'
 import ImageUploader from './components/ImageUploader.vue'
 import ImageLayout from './components/ImageLayout.vue'
 import WeChatPreview from './components/WeChatPreview.vue'
