@@ -101,7 +101,7 @@ export function useGitHubRepoConfig() {
     const prefix = (pathPrefix.value.trim() || getCurrentDatePath()).replace(/\/+$/, '')
     const p = path ? (prefix ? `${prefix}/${path}` : path) : prefix
     if (!o || !r) return ''
-    return `https://fastly.jsdelivr.net/gh/${o}/${r}@${b}/${p}`.replace(/\/+/g, '/')
+    return `https://fastly.jsdelivr.net/gh/${o}/${r}@${b}/${p}`.replace(/(?<!\:)\/\/+/g, '/')
   }
 
   // getJsdelivrUrlForRepo(repoName, path) - 指定 repo 名，path 为仓库内完整路径（如上传返回的 path）
@@ -110,7 +110,7 @@ export function useGitHubRepoConfig() {
     const b = branch.value.trim() || 'main'
     if (!o || !repoName || !path) return ''
     const p = path.replace(/^\/+/, '')
-    return `https://fastly.jsdelivr.net/gh/${o}/${repoName}@${b}/${p}`.replace(/\/+/g, '/')
+    return `https://fastly.jsdelivr.net/gh/${o}/${repoName}@${b}/${p}`.replace(/(?<!\:)\/\/+/g, '/')
   }
 
   const exportConfig = () => ({
