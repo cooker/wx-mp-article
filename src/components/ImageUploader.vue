@@ -284,7 +284,6 @@ const uploadToGitHub = async (file, index) => {
   }
 
   try {
-    uploading.value = true
     uploadProgress.value[index] = '上传中...'
 
     const prefix = (pathPrefix.value || '').trim().replace(/\/+$/, '') || getCurrentDatePath()
@@ -308,8 +307,6 @@ const uploadToGitHub = async (file, index) => {
     console.error('上传失败:', error)
     uploadProgress.value[index] = '上传失败'
     throw error
-  } finally {
-    uploading.value = false
   }
 }
 
@@ -370,16 +367,10 @@ const processFiles = async (files) => {
   autoSelectNewResolutions(localPreviews)
   emitFilteredImages()
   
-  // 逐个上传到 GitHub
-  const uploadedImages = []
-  for (let i = 0; i < imageFiles.length; i++) {
-    const file = imageFiles[i]
-    const index = startIndex + i
-    
+  // 并发上传到 GitHub
+  const uploadOne = async (file, index) => {
     try {
       const uploadedImage = await uploadToGitHub(file, index)
-      
-      // 获取图片尺寸
       const img = new Image()
       await new Promise((resolve, reject) => {
         img.onload = () => {
@@ -391,25 +382,25 @@ const processFiles = async (files) => {
         img.onerror = reject
         img.src = uploadedImage.url
       })
-      
-      uploadedImages.push(uploadedImage)
-      
-      // 更新对应位置的图片
       images.value[index] = uploadedImage
-      
-      // 自动选中新上传图片的分辨率组
+      delete uploadProgress.value[index]
       autoSelectNewResolutions([uploadedImage])
       emitFilteredImages()
-      
-      // 清除上传状态
-      delete uploadProgress.value[index]
     } catch (error) {
-      console.error(`图片 ${i + 1} 上传失败:`, error)
-      // 保留本地预览，但标记为上传失败
+      console.error(`图片 ${index - startIndex + 1} 上传失败:`, error)
       images.value[index].uploadError = true
       images.value[index].isUploading = false
       emitFilteredImages()
     }
+  }
+
+  uploading.value = true
+  try {
+    await Promise.all(
+      imageFiles.map((file, i) => uploadOne(file, startIndex + i))
+    )
+  } finally {
+    uploading.value = false
   }
 }
 
