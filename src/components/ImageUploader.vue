@@ -78,6 +78,14 @@
             </div>
             <div v-if="image.uploadError" class="upload-error-message">
               <span>上传失败</span>
+              <button
+                type="button"
+                class="retry-btn"
+                @click.stop="retryUpload(index)"
+                :disabled="image.isUploading"
+              >
+                重试
+              </button>
             </div>
             <button 
               @click.stop="removeImage(index)"
@@ -368,32 +376,6 @@ const processFiles = async (files) => {
   emitFilteredImages()
   
   // 并发上传到 GitHub
-  const uploadOne = async (file, index) => {
-    try {
-      const uploadedImage = await uploadToGitHub(file, index)
-      const img = new Image()
-      await new Promise((resolve, reject) => {
-        img.onload = () => {
-          uploadedImage.width = img.width
-          uploadedImage.height = img.height
-          uploadedImage.aspectRatio = img.width / img.height
-          resolve()
-        }
-        img.onerror = reject
-        img.src = uploadedImage.url
-      })
-      images.value[index] = uploadedImage
-      delete uploadProgress.value[index]
-      autoSelectNewResolutions([uploadedImage])
-      emitFilteredImages()
-    } catch (error) {
-      console.error(`图片 ${index - startIndex + 1} 上传失败:`, error)
-      images.value[index].uploadError = true
-      images.value[index].isUploading = false
-      emitFilteredImages()
-    }
-  }
-
   uploading.value = true
   try {
     await Promise.all(
@@ -402,6 +384,41 @@ const processFiles = async (files) => {
   } finally {
     uploading.value = false
   }
+}
+
+const uploadOne = async (file, index) => {
+  try {
+    const uploadedImage = await uploadToGitHub(file, index)
+    const img = new Image()
+    await new Promise((resolve, reject) => {
+      img.onload = () => {
+        uploadedImage.width = img.width
+        uploadedImage.height = img.height
+        uploadedImage.aspectRatio = img.width / img.height
+        resolve()
+      }
+      img.onerror = reject
+      img.src = uploadedImage.url
+    })
+    images.value[index] = uploadedImage
+    delete uploadProgress.value[index]
+    autoSelectNewResolutions([uploadedImage])
+    emitFilteredImages()
+  } catch (error) {
+    console.error(`图片 ${index + 1} 上传失败:`, error)
+    images.value[index].uploadError = true
+    images.value[index].isUploading = false
+    emitFilteredImages()
+  }
+}
+
+const retryUpload = async (index) => {
+  const image = images.value[index]
+  if (!image?.file) return
+  delete image.uploadError
+  image.isUploading = true
+  emitFilteredImages()
+  await uploadOne(image.file, index)
 }
 
 const removeImage = (index) => {
@@ -856,6 +873,10 @@ const clearImages = (event) => {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
   background: rgba(239, 68, 68, 0.95);
   backdrop-filter: blur(10px);
   padding: 0.75rem 1rem;
@@ -865,6 +886,28 @@ const clearImages = (event) => {
   color: white;
   font-weight: 500;
   z-index: 10;
+}
+
+.upload-error-message .retry-btn {
+  padding: 0.35rem 0.75rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: #dc2626;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upload-error-message .retry-btn:hover:not(:disabled) {
+  background: white;
+  transform: translateY(-1px);
+}
+
+.upload-error-message .retry-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .remove-btn:disabled {
