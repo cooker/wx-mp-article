@@ -271,11 +271,12 @@ const generateUUID = () => {
   })
 }
 
-// 生成文件名 (时间戳-UUID.jpg)
+// 生成文件名 (时间戳-UUID.jpg)，.jfif 统一改为 .jpg
 const generateFileName = (originalFile) => {
   const timestamp = Date.now()
   const uuid = generateUUID()
-  const extension = originalFile.name.split('.').pop() || 'jpg'
+  let extension = originalFile.name.split('.').pop()?.toLowerCase() || 'jpg'
+  if (extension === 'jfif') extension = 'jpg'
   return `${timestamp}-${uuid}.${extension}`
 }
 
