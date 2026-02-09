@@ -1,6 +1,16 @@
 <template>
   <div class="github-repo-config">
-    <h2 class="config-title">第一步：设置 GitHub 仓库配置</h2>
+    <div v-if="isConfigured && !showConfigForm" class="config-summary">
+      <span class="config-summary-text">GitHub 配置已就绪</span>
+      <button type="button" class="config-action-btn" @click="showConfigForm = true">
+        修改配置
+      </button>
+    </div>
+    <template v-else>
+    <div class="config-header">
+      <h2 class="config-title">第一步：设置 GitHub 仓库配置</h2>
+      <button v-if="isConfigured" type="button" class="config-close-btn" @click="showConfigForm = false" aria-label="收起">×</button>
+    </div>
     <p class="config-desc">
       配置后可用 <code>https://fastly.jsdelivr.net/gh/owner/repo@branch/路径</code> 格式展示图片
     </p>
@@ -34,7 +44,7 @@
           class="form-input"
         />
       </div>
-      <div class="form-field">
+      <div v-if="!isConfigured" class="form-field">
         <label>pathPrefix</label>
         <div class="path-prefix-row">
           <input
@@ -43,7 +53,7 @@
             :placeholder="getDefaultPathPrefix()"
             class="form-input"
           />
-      <button type="button" class="config-action-btn btn btn-secondary" @click="setPathPrefixToCurrent">
+          <button type="button" class="config-action-btn" @click="setPathPrefixToCurrent">
             设为当前日期
           </button>
         </div>
@@ -62,8 +72,8 @@
     </div>
 
     <div class="config-actions">
-      <button type="button" class="config-action-btn btn btn-secondary" @click="handleExport">导出配置</button>
-      <label class="config-action-btn btn btn-secondary file-label">
+      <button type="button" class="config-action-btn" @click="handleExport">导出配置</button>
+      <label class="config-action-btn file-label">
         <input
           type="file"
           accept=".json,application/json"
@@ -79,11 +89,12 @@
     <p v-if="exampleUrl" class="example-url">
       示例：<a :href="exampleUrl" target="_blank" rel="noopener noreferrer">{{ exampleUrl }}</a>
     </p>
+    </template>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useGitHubRepoConfig } from '../composables/useGitHubRepoConfig'
 
 const {
@@ -100,6 +111,21 @@ const {
 } = useGitHubRepoConfig()
 
 const importError = ref('')
+const showConfigForm = ref(false)
+
+const isConfigured = computed(() => {
+  const o = owner.value.trim()
+  const r = repo.value.trim()
+  return !!o && !!r
+})
+
+// 已配置时 pathPrefix 由系统时间自动生成，清空以便 composable 每次使用 getCurrentDatePath()
+watch(isConfigured, (configured) => {
+  if (configured) {
+    pathPrefix.value = ''
+    showConfigForm.value = false
+  }
+}, { immediate: true })
 
 const exampleUrl = computed(() => {
   const o = owner.value.trim()
@@ -149,12 +175,53 @@ const handleImport = (e) => {
     0 0 0 1px rgba(255, 255, 255, 0.5) inset;
 }
 
+.config-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
 .config-title {
   font-family: 'Inter', sans-serif;
   font-size: 1rem;
   font-weight: 600;
   color: #1a202c;
-  margin: 0 0 0.5rem;
+  margin: 0;
+}
+
+.config-close-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  color: #718096;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.config-close-btn:hover {
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+}
+
+.config-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.config-summary-text {
+  font-size: 0.875rem;
+  color: #4a5568;
 }
 
 .config-desc {
@@ -229,12 +296,22 @@ const handleImport = (e) => {
 }
 
 .config-action-btn {
-  font-size: 0.8125rem;
+  padding: 0.5rem 1rem;
+  background: rgba(102, 126, 234, 0.1);
+  color: #667eea;
+  border: 1px solid rgba(102, 126, 234, 0.2);
   border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
   white-space: nowrap;
 }
 
 .config-action-btn:hover {
+  background: rgba(102, 126, 234, 0.15);
+  border-color: rgba(102, 126, 234, 0.3);
   transform: translateY(-1px);
 }
 
