@@ -43,7 +43,7 @@
             :placeholder="getDefaultPathPrefix()"
             class="form-input"
           />
-          <button type="button" class="config-action-btn" @click="setPathPrefixToCurrent">
+      <button type="button" class="config-action-btn btn btn-secondary" @click="setPathPrefixToCurrent">
             设为当前日期
           </button>
         </div>
@@ -62,8 +62,8 @@
     </div>
 
     <div class="config-actions">
-      <button type="button" class="config-action-btn" @click="handleExport">导出配置</button>
-      <label class="config-action-btn file-label">
+      <button type="button" class="config-action-btn btn btn-secondary" @click="handleExport">导出配置</button>
+      <label class="config-action-btn btn btn-secondary file-label">
         <input
           type="file"
           accept=".json,application/json"
@@ -229,22 +229,12 @@ const handleImport = (e) => {
 }
 
 .config-action-btn {
-  padding: 0.5rem 1rem;
-  background: rgba(102, 126, 234, 0.1);
-  color: #667eea;
-  border: 1px solid rgba(102, 126, 234, 0.2);
-  border-radius: 8px;
-  font-family: 'Inter', sans-serif;
   font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
+  border-radius: 8px;
   white-space: nowrap;
 }
 
 .config-action-btn:hover {
-  background: rgba(102, 126, 234, 0.15);
-  border-color: rgba(102, 126, 234, 0.3);
   transform: translateY(-1px);
 }
 

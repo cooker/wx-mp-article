@@ -1,0 +1,466 @@
+.wechat-preview {
+  position: sticky;
+  top: 2rem;
+  height: fit-content;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+  animation: fadeInRight 0.6s ease-out 0.3s both;
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.preview-header {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.preview-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin: 0;
+  letter-spacing: -0.01em;
+  flex: 1;
+}
+
+.copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  white-space: nowrap;
+}
+
+.copy-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.copy-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.copy-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.copy-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.copy-btn span {
+  font-weight: 500;
+}
+
+.phone-mockup {
+  background: #ffffff;
+  border-radius: 24px;
+  box-shadow:
+    0 20px 60px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  width: 375px;
+  max-width: 100%;
+  margin: 0 auto;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.phone-mockup:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 25px 70px rgba(0, 0, 0, 0.2),
+    0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.phone-header {
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+  color: #1a202c;
+  font-weight: 600;
+}
+
+.status-icons {
+  display: flex;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.nav-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.back-btn {
+  font-size: 1.5rem;
+  color: #1a202c;
+  cursor: pointer;
+  width: 32px;
+  text-align: center;
+}
+
+.nav-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a202c;
+}
+
+.more-btn {
+  font-size: 1.25rem;
+  color: #1a202c;
+  cursor: pointer;
+  width: 32px;
+  text-align: center;
+}
+
+.article-content {
+  background: #ffffff;
+  min-height: 400px;
+}
+
+.article-header {
+  padding: 1.5rem 1rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.article-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1a202c;
+  line-height: 1.6;
+  margin: 0 0 1rem;
+}
+
+.article-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.author {
+  font-weight: 500;
+}
+
+.separator {
+  color: #d1d5db;
+}
+
+.date {
+  color: #9ca3af;
+}
+
+.article-body {
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+/* 网格布局 - 与 ImageLayout 保持一致 */
+.article-image {
+  border-radius: 16px;
+  overflow: hidden;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  height: 200px;
+}
+
+.article-image:hover {
+  transform: scale(1.06) translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+  z-index: 10;
+}
+
+.article-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  opacity: 1;
+  transition: opacity 0.3s;
+}
+
+/* 空状态提示 */
+.preview-empty-state {
+  padding: 3rem 2rem;
+  text-align: center;
+  background: rgba(249, 250, 251, 0.8);
+  border-radius: 12px;
+  border: 2px dashed rgba(102, 126, 234, 0.2);
+  margin: 1rem;
+}
+
+.preview-empty-message {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9375rem;
+  color: #9ca3af;
+  margin: 0;
+  font-weight: 500;
+}
+
+.article-footer {
+  padding: 1.5rem 1rem;
+  border-top: 1px solid #f3f4f6;
+  text-align: center;
+}
+
+.read-more {
+  color: #667eea;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.75rem;
+  border: 1px solid #667eea;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.read-more:hover {
+  background: #667eea;
+  color: #ffffff;
+}
+
+/* 滚动条样式 */
+.wechat-preview::-webkit-scrollbar {
+  width: 6px;
+}
+
+.wechat-preview::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.wechat-preview::-webkit-scrollbar-thumb {
+  background: rgba(102, 126, 234, 0.3);
+  border-radius: 3px;
+}
+
+.wechat-preview::-webkit-scrollbar-thumb:hover {
+  background: rgba(102, 126, 234, 0.5);
+}
+
+/* 移动端优化 */
+@media (max-width: 1024px) {
+  .wechat-preview {
+    position: relative;
+    top: 0;
+    margin-top: 0;
+    animation: none;
+  }
+
+  .preview-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .phone-mockup {
+    width: 100%;
+    max-width: 375px;
+  }
+
+  .article-body.layout-grid {
+    /* 列数通过内联样式动态设置，这里只设置间距 */
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .preview-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .preview-title {
+    font-size: 1.25rem;
+  }
+
+  .copy-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .phone-mockup {
+    border-radius: 24px;
+  }
+}
+
+/* 图片预览模态框 */
+.image-preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.95);
+  backdrop-filter: blur(10px);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.preview-close {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  z-index: 2001;
+}
+
+.preview-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: rotate(90deg);
+}
+
+.preview-close svg {
+  width: 24px;
+  height: 24px;
+}
+
+.preview-content {
+  position: relative;
+  max-width: 90vw;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.preview-content img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.preview-nav {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  padding: 1rem 2rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.preview-nav .nav-btn {
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.preview-nav .nav-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(1.1);
+}
+
+.preview-nav .nav-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.preview-nav .nav-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+.preview-nav .nav-info {
+  font-family: 'Inter', sans-serif;
+  font-size: 1rem;
+  color: white;
+  font-weight: 500;
+  min-width: 80px;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .preview-close {
+    top: 1rem;
+    right: 1rem;
+    width: 40px;
+    height: 40px;
+  }
+
+  .preview-content {
+    padding: 1rem;
+  }
+
+  .preview-nav {
+    padding: 0.75rem 1.5rem;
+    gap: 1.5rem;
+  }
+}
+
