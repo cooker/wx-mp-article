@@ -1,133 +1,233 @@
-* {
-  margin: 0;
-  padding: 0;
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 :root {
-  /* 主题色 */
-  --color-primary: #667eea;
-  --color-primary-soft: rgba(102, 126, 234, 0.1);
-  --color-primary-soft-strong: rgba(102, 126, 234, 0.15);
-  --color-primary-border: rgba(102, 126, 234, 0.2);
-  --color-primary-border-strong: rgba(102, 126, 234, 0.3);
+  color-scheme: light;
+  --color-canvas: #f3f1ec;
+  --color-surface: #fffefb;
+  --color-surface-soft: #f8f6f1;
+  --color-ink: #171a2b;
+  --color-muted: #6f7080;
+  --color-primary: #6d4cff;
+  --color-primary-strong: #5435e6;
+  --color-primary-soft: #eeeaff;
+  --color-accent: #ff7966;
+  --color-success: #1ca171;
+  --color-danger: #ce4f47;
+  --color-line: rgba(23, 26, 43, 0.10);
+  --color-line-strong: rgba(23, 26, 43, 0.18);
+  --font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  --radius-xl: 28px;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+  --shadow-panel: 0 20px 60px rgba(31, 28, 54, 0.08);
+  --shadow-float: 0 18px 44px rgba(31, 28, 54, 0.14);
+  font-family: var(--font-sans);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
 
-  --color-surface: rgba(255, 255, 255, 0.98);
-  --color-surface-muted: rgba(255, 255, 255, 0.9);
-
-  --color-text-main: #1a202c;
-  --color-text-muted: #718096;
-
-  --radius-lg: 16px;
-  --radius-md: 12px;
-  --radius-sm: 8px;
-
-  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+  background: var(--color-canvas);
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at 90% 4%, rgba(109, 76, 255, 0.11), transparent 27rem),
+    radial-gradient(circle at 2% 44%, rgba(255, 121, 102, 0.08), transparent 24rem),
+    var(--color-canvas);
+  color: var(--color-ink);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
 }
 
-#app {
-  min-height: 100vh;
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.27;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.045'/%3E%3C/svg%3E");
 }
 
-/* 滚动条样式 */
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button,
+label,
+input[type="checkbox"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+}
+
+a {
+  color: var(--color-primary-strong);
+}
+
+::selection {
+  background: rgba(109, 76, 255, 0.2);
+}
+
+:focus-visible {
+  outline: 3px solid rgba(109, 76, 255, 0.35);
+  outline-offset: 3px;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.1);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.3);
-  border-radius: 5px;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: rgba(23, 26, 43, 0.24);
+  background-clip: padding-box;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.5);
+#app {
+  min-height: 100vh;
 }
 
-/* 选择文本样式 */
-::selection {
-  background: rgba(102, 126, 234, 0.3);
-  color: inherit;
+/* GitHub connection panel — kept global so the existing scoped component can
+   stay focused on configuration behavior while sharing the application skin. */
+#app .github-repo-config {
+  margin: 0;
+  padding: 24px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-xl);
+  background: var(--color-ink);
+  color: white;
+  box-shadow: var(--shadow-panel);
 }
 
-/* 焦点样式 */
-*:focus-visible {
-  outline: 2px solid #667eea;
-  outline-offset: 2px;
+#app .config-summary {
+  min-height: 48px;
 }
 
-/* 平滑滚动 */
-html {
-  scroll-behavior: smooth;
+#app .config-summary-text,
+#app .config-title {
+  color: white;
+  font-weight: 720;
 }
 
-/* 图片加载优化 */
-img {
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
+#app .config-summary-text::before {
+  content: "CONNECTED";
+  display: inline-block;
+  margin-right: 12px;
+  color: #a99aff;
+  font: 700 0.68rem var(--font-mono);
+  letter-spacing: 0.1em;
 }
 
-/* 按钮重置 */
-button {
-  font-family: inherit;
+#app .config-desc,
+#app .form-hint,
+#app .form-field label {
+  color: rgba(255, 255, 255, 0.58);
 }
 
-/* 通用按钮样式（组件可叠加 scoped 样式） */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  border-radius: var(--radius-md);
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.2s ease;
+#app .config-desc code,
+#app .form-hint code {
+  background: rgba(255, 255, 255, 0.08);
+  color: #c8beff;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, #764ba2 100%);
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+#app .config-form {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(102, 126, 234, 0.4);
+#app .form-input {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.075);
+  color: white;
+  box-shadow: none;
 }
 
-.btn-secondary {
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-  border-color: var(--color-primary-border);
+#app .form-input::placeholder {
+  color: rgba(255, 255, 255, 0.3);
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background: var(--color-primary-soft-strong);
-  border-color: var(--color-primary-border-strong);
-  transform: translateY(-1px);
+#app .form-input:focus {
+  border-color: #9d8aff;
+  background: rgba(255, 255, 255, 0.11);
+  box-shadow: 0 0 0 3px rgba(109, 76, 255, 0.22);
 }
 
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+#app .config-action-btn {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  color: white;
+  box-shadow: none;
 }
 
-/* 响应式图片 */
-img {
-  max-width: 100%;
-  height: auto;
+#app .config-action-btn:hover {
+  border-color: rgba(255, 255, 255, 0.32);
+  background: rgba(255, 255, 255, 0.14);
+  transform: none;
+}
+
+#app .config-close-btn {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+#app .example-url {
+  border-top-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.58);
+}
+
+#app .example-url a {
+  color: #b9adff;
+}
+
+@media (max-width: 720px) {
+  #app .github-repo-config {
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  #app .config-form {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

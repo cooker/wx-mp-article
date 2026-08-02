@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" role="img" aria-labelledby="title desc">
+  <title id="title">微信公众号图片排版助手</title>
+  <desc id="desc">批量选择图片，上传到 GitHub 图床，生成适合微信公众号的排版与 HTML。</desc>
+  <defs>
+    <linearGradient id="bg" x1="40" y1="20" x2="1160" y2="360" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#667EEA"/>
+      <stop offset="1" stop-color="#764BA2"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#FFFFFF" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity=".10"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="380" rx="28" fill="url(#bg)"/>
+  <circle cx="1120" cy="52" r="150" fill="#FFFFFF" opacity=".05"/>
+  <circle cx="70" cy="350" r="125" fill="#FFFFFF" opacity=".05"/>
+
+  <g transform="translate(62 58)" fill="#FFFFFF">
+    <text x="0" y="0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" opacity=".75">WX-MP-ARTICLE · CREATOR TOOL</text>
+    <text x="0" y="72" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="54" font-weight="750">微信公众号图片排版助手</text>
+    <text x="0" y="122" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif" font-size="24" opacity=".9">批量上传图片，快速生成可预览、可复制的文章排版</text>
+
+    <g transform="translate(0 178)" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif">
+      <rect width="122" height="42" rx="21" fill="#FFFFFF" opacity=".16"/>
+      <text x="61" y="28" text-anchor="middle" font-size="18">批量上传</text>
+      <rect x="136" width="122" height="42" rx="21" fill="#FFFFFF" opacity=".16"/>
+      <text x="197" y="28" text-anchor="middle" font-size="18">四种布局</text>
+      <rect x="272" width="142" height="42" rx="21" fill="#FFFFFF" opacity=".16"/>
+      <text x="343" y="28" text-anchor="middle" font-size="18">微信实时预览</text>
+    </g>
+  </g>
+
+  <g transform="translate(742 54)" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, sans-serif">
+    <rect width="396" height="272" rx="24" fill="url(#glass)" stroke="#FFFFFF" stroke-opacity=".28"/>
+    <g transform="translate(28 28)">
+      <rect width="74" height="74" rx="14" fill="#FFFFFF" opacity=".96"/>
+      <circle cx="24" cy="24" r="8" fill="#F4B860"/>
+      <path d="M11 61 31 41l14 13 10-9 10 16H11Z" fill="#667EEA"/>
+      <text x="94" y="31" fill="#FFFFFF" font-size="20" font-weight="650">选择多张图片</text>
+      <text x="94" y="60" fill="#FFFFFF" font-size="18" opacity=".75">拖拽或点击上传</text>
+    </g>
+    <path d="M64 114v24" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" opacity=".45"/>
+    <path d="m57 132 7 7 7-7" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>
+    <g transform="translate(28 148)">
+      <rect width="98" height="86" rx="14" fill="#FFFFFF" opacity=".95"/>
+      <rect x="12" y="12" width="32" height="27" rx="5" fill="#667EEA"/>
+      <rect x="54" y="12" width="32" height="27" rx="5" fill="#8E67C7"/>
+      <rect x="12" y="49" width="32" height="25" rx="5" fill="#8E67C7"/>
+      <rect x="54" y="49" width="32" height="25" rx="5" fill="#667EEA"/>
+      <text x="122" y="34" fill="#FFFFFF" font-size="20" font-weight="650">排版并预览</text>
+      <text x="122" y="63" fill="#FFFFFF" font-size="18" opacity=".75">复制文章 HTML</text>
+    </g>
+  </g>
+</svg>

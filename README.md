@@ -1,153 +1,133 @@
-# 图片批量上传自动排版网站
+<p align="center">
+  <img src="./assets/readme/hero.svg" width="100%" alt="微信公众号图片排版助手：批量上传图片并生成适合微信公众号的文章排版">
+</p>
 
-一个基于 Vue 3 的现代化图片批量上传和自动排版工具，支持多种精美的排版布局。
+<p align="center">
+  <a href="https://github.com/cooker/wx-mp-article/actions"><img alt="GitHub Actions" src="https://img.shields.io/github/actions/workflow/status/cooker/wx-mp-article/deploy.yml?branch=main&style=flat-square"></a>
+  <img alt="Vue 3" src="https://img.shields.io/badge/Vue-3.4-42b883?style=flat-square&logo=vuedotjs&logoColor=white">
+  <img alt="Manifest V3" src="https://img.shields.io/badge/Chrome-Manifest%20V3-4285F4?style=flat-square&logo=googlechrome&logoColor=white">
+  <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-764ba2?style=flat-square">
+</p>
 
-## 功能特性
+一个为微信公众号内容创作者准备的图片工作台。批量选择图片后，你可以上传到自己的 GitHub 图床，在四种布局间切换，实时检查微信文章效果，并复制生成的 HTML。
 
-- 🖼️ **批量上传** - 支持拖拽上传和点击选择，一次上传多张图片
-- 🎨 **自动排版** - 四种排版模式：瀑布流、网格、马赛克、轮播
-- 📱 **响应式设计** - 完美适配桌面端和移动端
-- 🔍 **图片预览** - 点击图片可全屏预览，支持键盘导航
-- ✨ **精美 UI** - 现代化的渐变背景和毛玻璃效果
-- ⚡ **性能优化** - 图片懒加载，流畅的动画效果
+## 功能一览
 
-## 技术栈
+- **批量图片处理**：支持点击选择和拖拽上传，一次处理多张图片。
+- **四种排版模式**：网格、瀑布流、马赛克与轮播。
+- **微信公众号预览**：在编辑过程中即时查看文章中的展示效果。
+- **GitHub 图床**：上传到用户自行配置的仓库，并生成 jsDelivr CDN 链接。
+- **HTML 输出**：生成并复制适合继续编辑或粘贴使用的文章 HTML。
+- **多端运行**：可作为 Chrome 扩展、Web 应用或 Electron 桌面应用运行。
 
-- Vue 3 (Composition API)
-- Vite
-- CSS3 (现代特性：backdrop-filter, grid layout)
+## 工作流程
+
+```text
+选择图片 → 配置 GitHub 仓库 → 上传并生成 CDN 链接 → 选择布局 → 预览并复制 HTML
+```
+
+GitHub 仓库配置和访问令牌保存在浏览器本地。只有在用户主动上传图片时，应用才会向 `api.github.com` 发送所选图片和令牌。
 
 ## 快速开始
 
-### 安装依赖
+### Chrome 扩展
+
+1. 安装依赖并构建扩展包：
+
+   ```bash
+   pnpm install
+   pnpm build:extension
+   ```
+
+2. 构建完成后会生成 `wx-mp-article-extension.zip`。
+3. 本地调试时，打开 `chrome://extensions`，启用开发者模式，并加载解压后的 `dist` 目录。
+4. 点击扩展图标，会在独立标签页中打开完整排版工作台。
+
+### Web 开发
 
 ```bash
-npm install
-# 或
 pnpm install
-# 或
-yarn install
-```
-
-### 启动开发服务器
-
-```bash
-npm run dev
-# 或
 pnpm dev
-# 或
-yarn dev
 ```
 
-项目将在 `http://localhost:3000` 启动
+开发服务器默认运行在 `http://localhost:3000`。
 
-### 构建生产版本
+生产构建与本地预览：
 
 ```bash
-npm run build
+pnpm build
+pnpm preview
 ```
 
-### 预览生产构建
+### Electron 桌面应用
 
 ```bash
-npm run preview
+# 开发运行
+pnpm electron:dev
+
+# 构建当前平台安装包
+pnpm electron:build
 ```
 
-## GitHub Pages 部署
-
-项目已配置 GitHub Actions 自动部署到 GitHub Pages。
-
-### 部署步骤
-
-1. **启用 GitHub Pages**：
-   - 进入仓库的 Settings → Pages
-   - Source 选择 "GitHub Actions"
-
-2. **推送代码**：
-   - 推送到 `main` 或 `master` 分支
-   - GitHub Actions 会自动构建并部署
-
-3. **访问网站**：
-   - 部署完成后，访问 `https://<username>.github.io/<repository-name>/`
-
-### 手动触发部署
-
-如果需要手动触发部署，可以：
-- 进入仓库的 Actions 页面
-- 选择 "Deploy to GitHub Pages" 工作流
-- 点击 "Run workflow"
-
-### 配置说明
-
-- 工作流文件位于 `.github/workflows/deploy.yml`
-- 构建输出目录：`dist`
-- Base 路径自动设置为 `/<repository-name>/`
-
-### 打包为桌面应用
-
-#### 开发模式运行 Electron
+平台专用构建命令：
 
 ```bash
-npm run electron:dev
+pnpm electron:build:mac
+pnpm electron:build:win
 ```
 
-#### 打包所有平台
+产物位于 `dist-electron/`。
 
-```bash
-npm run electron:build
-```
+## GitHub 图床配置
 
-#### 仅打包 Windows
+| 字段 | 说明 | 示例 |
+| --- | --- | --- |
+| Owner | GitHub 用户名或组织名 | `bucketio` |
+| Repo | 图片仓库；支持随机仓库语法 | `img[0-19]` |
+| Branch | 上传目标分支 | `main` |
+| Path prefix | 仓库内目录，默认按日期生成 | `2026/08/02` |
+| Token | 具有目标仓库写入权限的 GitHub Token | 仅保存在本地 |
 
-```bash
-npm run electron:build:win
-```
+随机仓库语法 `img[0-19]` 会在 `img0` 到 `img19` 中随机选择一个仓库，适合分散存储图片。
 
-#### 仅打包 macOS
-
-```bash
-npm run electron:build:mac
-```
-
-打包后的文件会在 `dist-electron` 目录中。
-
-## 使用说明
-
-1. **上传图片**：将图片拖拽到上传区域，或点击选择文件
-2. **选择排版**：上传后，选择你喜欢的排版模式
-3. **预览图片**：点击任意图片可全屏预览
-4. **键盘操作**：在预览模式下，使用左右箭头键切换图片，ESC 键关闭预览
-
-## 排版模式
-
-- **瀑布流**：根据图片宽高比自动调整，呈现自然的瀑布流效果
-- **网格**：整齐统一的网格布局，所有图片大小一致
-- **马赛克**：创意马赛克布局，部分图片放大突出显示
-- **轮播**：横向滚动轮播，适合展示精选图片
-
-## 浏览器支持
-
-- Chrome (最新版)
-- Firefox (最新版)
-- Safari (最新版)
-- Edge (最新版)
+> 请为 Token 配置最小必要权限，并只授权需要上传图片的仓库。
 
 ## 项目结构
 
-```
+```text
 wx-mp-article/
+├── public/                 # Chrome 扩展清单、后台脚本与图标
 ├── src/
-│   ├── components/
-│   │   ├── ImageUploader.vue    # 图片上传组件
-│   │   └── ImageLayout.vue      # 自动排版组件
-│   ├── App.vue                  # 主应用组件
-│   ├── main.js                  # 应用入口
-│   └── style.css                # 全局样式
-├── index.html                   # HTML 模板
-├── vite.config.js               # Vite 配置
-└── package.json                 # 项目配置
+│   ├── components/         # 上传、布局、配置与微信预览组件
+│   ├── composables/        # GitHub 上传、HTML 模板等业务逻辑
+│   ├── styles/             # 组件样式
+│   ├── App.vue
+│   └── main.js
+├── electron/               # Electron 主进程
+├── vite.config.js
+└── package.json
 ```
 
-## 许可证
+## 技术栈
+
+- [Vue 3](https://vuejs.org/) Composition API
+- [Vite](https://vite.dev/)
+- Chrome Extensions Manifest V3
+- [Electron](https://www.electronjs.org/) 与 electron-builder
+
+## 隐私与安全
+
+- 不包含广告、分析 SDK 或用户追踪。
+- GitHub 配置和 Token 存储在用户设备本地。
+- 图片仅在用户主动操作时上传到其指定的 GitHub 仓库。
+- Chrome 扩展仅声明 `https://api.github.com/*` 主机权限。
+
+完整说明见 [隐私政策](./public/privacy.html)。
+
+## 部署
+
+仓库包含 GitHub Pages 工作流。启用仓库的 **Settings → Pages → GitHub Actions** 后，推送到 `main` 或 `master` 即可触发部署。更多说明见 [DEPLOY.md](./DEPLOY.md)。
+
+## License
 
 MIT

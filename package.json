@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:extension": "vite build && cd dist && zip -r ../wx-mp-article-extension.zip .",
+    "build:extension": "vite build && cd dist && zip -FSr ../wx-mp-article-extension.zip .",
     "preview": "vite preview",
     "electron:dev": "vite build && electron .",
     "electron:build": "vite build && electron-builder",
@@ -38,6 +38,7 @@
       }
     ],
     "win": {
+      "icon": "public/icons/icon-512.png",
       "target": [
         {
           "target": "nsis",
@@ -48,6 +49,7 @@
       ]
     },
     "mac": {
+      "icon": "public/icons/icon-512.png",
       "target": [
         {
           "target": "dmg",

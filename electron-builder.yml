@@ -7,6 +7,7 @@ files:
   - electron/**/*
   - node_modules/**/*
 win:
+  icon: public/icons/icon-512.png
   target:
     - target: nsis
       arch:
@@ -17,6 +18,7 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
 mac:
+  icon: public/icons/icon-512.png
   target:
     - target: dmg
       arch:
