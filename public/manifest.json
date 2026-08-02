@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "微信公众号图片排版助手",
+  "version": "1.0.0",
+  "description": "批量上传图片到 GitHub 图床，并生成适合微信公众号文章的精美图片排版。",
+  "action": {
+    "default_title": "打开微信公众号图片排版助手"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "host_permissions": [
+    "https://api.github.com/*"
+  ],
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  }
+}
